@@ -4,18 +4,16 @@ from dataclasses import dataclass, field
 import hashlib
 import json
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import chromadb
-from llama_index.core import Settings, SimpleDirectoryReader, StorageContext, VectorStoreIndex
+from llama_index.core import Settings, StorageContext, VectorStoreIndex
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.openai import OpenAI
 from llama_index.vector_stores.chroma import ChromaVectorStore
 
 from config import AppConfig
-
-
-SUPPORTED_EXTENSIONS = {".pdf", ".txt", ".md", ".docx", ".odt", ".rtf"}
+from document_ingestion import DocumentIngestionService, SUPPORTED_EXTENSIONS
 
 
 @dataclass
@@ -31,6 +29,10 @@ class AuditRAGPipeline:
     def __init__(self, config: AppConfig):
         self.config = config
         self.config.chroma_path.mkdir(parents=True, exist_ok=True)
+        self.ingestion_service = DocumentIngestionService(
+            backend=self.config.ingestion_backend,
+            unstructured_chunk_chars=self.config.unstructured_chunk_chars,
+        )
         self._configure_settings()
         self._initialize_vector_store()
 
@@ -158,7 +160,10 @@ class AuditRAGPipeline:
             absolute_path = self.config.documents_dir / relative_path
 
             try:
-                documents = SimpleDirectoryReader(input_files=[str(absolute_path)]).load_data()
+                documents = self.ingestion_service.load_documents(
+                    file_path=absolute_path,
+                    relative_path=relative_path,
+                )
                 if not documents:
                     report.skipped_files.append(relative_path)
                     next_manifest.pop(relative_path, None)
@@ -189,10 +194,142 @@ class AuditRAGPipeline:
         self.index = self._build_index_from_vector_store()
         return report
 
-    def query(self, prompt: str, similarity_top_k: int = 5) -> str:
+    def _extract_citations(self, response: Any) -> List[Dict[str, Any]]:
+        source_nodes = getattr(response, "source_nodes", []) or []
+        citations: List[Dict[str, Any]] = []
+        seen_sources = set()
+
+        for node_with_score in source_nodes:
+            if len(citations) >= self.config.max_citations:
+                break
+
+            node = getattr(node_with_score, "node", None)
+            metadata = dict(getattr(node, "metadata", {}) or {})
+
+            source_file = str(metadata.get("source_file", "unknown"))
+            source_page = metadata.get("source_page") or metadata.get("page_label") or metadata.get("page")
+            source_key = (source_file, str(source_page))
+
+            if source_key in seen_sources:
+                continue
+            seen_sources.add(source_key)
+
+            score_value = getattr(node_with_score, "score", None)
+            try:
+                score = float(score_value) if score_value is not None else None
+            except (TypeError, ValueError):
+                score = None
+
+            snippet = ""
+            if node is not None:
+                try:
+                    snippet = node.get_content()
+                except Exception:
+                    snippet = ""
+
+            snippet = " ".join(snippet.split())
+            if len(snippet) > 300:
+                snippet = f"{snippet[:297]}..."
+
+            citations.append(
+                {
+                    "source_file": source_file,
+                    "source_page": source_page,
+                    "score": score,
+                    "snippet": snippet,
+                }
+            )
+
+        return citations
+
+    @staticmethod
+    def _safe_parse_structured_json(response_text: str) -> Dict[str, Any] | None:
+        candidate = response_text.strip()
+        if candidate.startswith("```"):
+            lines = candidate.splitlines()
+            if len(lines) >= 3 and lines[0].startswith("```"):
+                candidate = "\n".join(lines[1:-1]).strip()
+
+        try:
+            parsed = json.loads(candidate)
+        except json.JSONDecodeError:
+            start = candidate.find("{")
+            end = candidate.rfind("}")
+            if start == -1 or end == -1 or end <= start:
+                return None
+
+            try:
+                parsed = json.loads(candidate[start : end + 1])
+            except json.JSONDecodeError:
+                return None
+
+        if not isinstance(parsed, dict):
+            return None
+        return parsed
+
+    @staticmethod
+    def _coerce_list_of_strings(value: Any) -> List[str]:
+        if isinstance(value, list):
+            return [str(item).strip() for item in value if str(item).strip()]
+        if value is None:
+            return []
+
+        text = str(value).strip()
+        return [text] if text else []
+
+    def _normalize_structured_payload(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        normalized: Dict[str, Any] = {
+            "executive_summary": str(payload.get("executive_summary", "")).strip(),
+            "key_risks": self._coerce_list_of_strings(payload.get("key_risks", [])),
+            "critical_deadlines": self._coerce_list_of_strings(payload.get("critical_deadlines", [])),
+            "recommended_actions": self._coerce_list_of_strings(payload.get("recommended_actions", [])),
+            "uncertainty_notes": str(payload.get("uncertainty_notes", "")).strip(),
+        }
+        return normalized
+
+    def query_with_sources(self, prompt: str, similarity_top_k: int = 5) -> Dict[str, Any]:
         if self.collection.count() == 0:
             raise RuntimeError("Index is empty. Add documents before querying.")
 
         query_engine = self.index.as_query_engine(similarity_top_k=similarity_top_k)
         response = query_engine.query(prompt)
-        return str(response)
+
+        return {
+            "answer": str(response),
+            "citations": self._extract_citations(response),
+        }
+
+    def generate_structured_audit(self, prompt: str, similarity_top_k: int = 5) -> Dict[str, Any]:
+        schema_instruction = (
+            "Return strict JSON with these keys only: "
+            "executive_summary (string), "
+            "key_risks (array of strings), "
+            "critical_deadlines (array of strings), "
+            "recommended_actions (array of strings), "
+            "uncertainty_notes (string). "
+            "Use only retrieved evidence. If evidence is weak or missing, explain it in uncertainty_notes. "
+            "Do not include markdown code fences."
+        )
+        combined_prompt = (
+            "You are an assistant for SME legal-document audits. "
+            f"{schema_instruction}\n\n"
+            f"User request: {prompt}"
+        )
+
+        payload = self.query_with_sources(combined_prompt, similarity_top_k=similarity_top_k)
+        parsed_payload = self._safe_parse_structured_json(payload["answer"]) or {}
+        normalized = self._normalize_structured_payload(parsed_payload)
+
+        if not normalized["executive_summary"]:
+            normalized["executive_summary"] = payload["answer"].strip()
+
+        if not normalized["uncertainty_notes"]:
+            normalized[
+                "uncertainty_notes"
+            ] = "Generated from retrieved chunks only; missing or low-quality source text may reduce completeness."
+
+        normalized["citations"] = payload["citations"]
+        return normalized
+
+    def query(self, prompt: str, similarity_top_k: int = 5) -> str:
+        return str(self.query_with_sources(prompt, similarity_top_k=similarity_top_k)["answer"])

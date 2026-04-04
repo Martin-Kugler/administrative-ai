@@ -1,0 +1,26 @@
+[
+  {
+    "id": "contract_audit_001",
+    "question": "Provide an executive summary and identify critical termination clauses and penalties.",
+    "expected_sources": [
+      "29-05-2025_modelo_orientativo_de_contrato_de_arrendamiento_de_vivienda.odt"
+    ],
+    "expected_keywords": [
+      "termination",
+      "penalty",
+      "notice"
+    ]
+  },
+  {
+    "id": "contract_audit_002",
+    "question": "List the most important deadlines and required actions for the tenant.",
+    "expected_sources": [
+      "29-05-2025_modelo_orientativo_de_contrato_de_arrendamiento_de_vivienda.odt"
+    ],
+    "expected_keywords": [
+      "deadline",
+      "tenant",
+      "action"
+    ]
+  }
+]

@@ -17,6 +17,14 @@ def _to_float(value: str | None, default: float) -> float:
 def _to_int(value: str | None, default: int) -> int:
     if value is None:
         return default
+
+
+def _to_str(value: str | None, default: str) -> str:
+    if value is None:
+        return default
+
+    cleaned = value.strip()
+    return cleaned or default
     try:
         return int(value)
     except ValueError:
@@ -37,6 +45,9 @@ class AppConfig:
     default_query: str
     chunk_size: int
     chunk_overlap: int
+    ingestion_backend: str
+    unstructured_chunk_chars: int
+    max_citations: int
 
     @classmethod
     def from_env(cls) -> "AppConfig":
@@ -84,4 +95,13 @@ class AppConfig:
             ),
             chunk_size=_to_int(os.getenv("ADMIN_AI_CHUNK_SIZE"), 1024),
             chunk_overlap=_to_int(os.getenv("ADMIN_AI_CHUNK_OVERLAP"), 100),
+            ingestion_backend=_to_str(
+                os.getenv("ADMIN_AI_INGESTION_BACKEND"),
+                "auto",
+            ).lower(),
+            unstructured_chunk_chars=_to_int(
+                os.getenv("ADMIN_AI_UNSTRUCTURED_CHUNK_CHARS"),
+                1800,
+            ),
+            max_citations=_to_int(os.getenv("ADMIN_AI_MAX_CITATIONS"), 6),
         )
