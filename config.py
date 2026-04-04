@@ -67,7 +67,7 @@ class AppConfig:
         return cls(
             lmstudio_base_url=os.getenv(
                 "ADMIN_AI_LMSTUDIO_BASE_URL",
-                "http://172.26.224.1:1234/v1",
+                "http://127.0.0.1:1234/v1",
             ),
             lmstudio_api_key=os.getenv("ADMIN_AI_LMSTUDIO_API_KEY", "lm-studio"),
             llm_model_name=os.getenv(
