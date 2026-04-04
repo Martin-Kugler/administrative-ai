@@ -1,36 +1,71 @@
-from llama_index.llms.openai import OpenAI
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+import argparse
 
-api_base = "http://172.26.224.1:1234/v1"
-model_name = "llama-3.1-8b-instruct"
+from config import AppConfig
+from rag_pipeline import AuditRAGPipeline
 
-# Initial configuration: 
-Settings.llm = OpenAI(
-    api_base=api_base, 
-    api_key="lm-studio",                 
-    model_name=model_name,       
-    temperature=0.1 # Lower temperature for better precision.
-)
 
-# Embedding model configuration: 
-Settings.embed_model = HuggingFaceEmbedding(model_name="BAAI/bge-small-en-v1.5")
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Administrative AI - local legal audit assistant (Phase 1)."
+    )
+    parser.add_argument(
+        "--query",
+        type=str,
+        default=None,
+        help="Question sent to the RAG engine. If omitted, the default query is used.",
+    )
+    parser.add_argument(
+        "--top-k",
+        type=int,
+        default=5,
+        help="Number of chunks to retrieve from the vector store.",
+    )
+    parser.add_argument(
+        "--reindex",
+        action="store_true",
+        help="Delete existing vectors and rebuild the index from documents.",
+    )
+    return parser
 
-# Read the PDF in the respective folder: 
-document_path = "documents"
-print("Loading documents...")
-documents = SimpleDirectoryReader(document_path).load_data()
 
-# Index creation: 
-index = VectorStoreIndex.from_documents(documents)
+def print_ingestion_report(report) -> None:
+    print("\n--- INGESTION REPORT ---")
+    if report.manifest_bootstrapped:
+        print("Manifest bootstrapped from current files and existing vector store.")
 
-# Query engine creation: 
-query_engine = index.as_query_engine()
+    print(f"Indexed files: {len(report.indexed_files)}")
+    for path in report.indexed_files:
+        print(f"  + {path}")
 
-print("Analyzing document...")
+    print(f"Removed files: {len(report.removed_files)}")
+    for path in report.removed_files:
+        print(f"  - {path}")
 
-# Response generation: 
-response = query_engine.query("Please summarize this document and let me know if there are any critical deadlines for responding.")
+    print(f"Skipped files: {len(report.skipped_files)}")
+    for path in report.skipped_files:
+        print(f"  ~ {path}")
 
-print("\n--- AUDIT RESULT ---")
-print(response)
+    print(f"Failed files: {len(report.failed_files)}")
+    for path, error in report.failed_files.items():
+        print(f"  ! {path}: {error}")
+
+
+def main() -> None:
+    args = build_parser().parse_args()
+    config = AppConfig.from_env()
+
+    pipeline = AuditRAGPipeline(config)
+    report = pipeline.sync_index(force_reindex=args.reindex)
+    print_ingestion_report(report)
+
+    query = args.query or config.default_query
+    print("\n--- QUERY ---")
+    print(query)
+
+    response = pipeline.query(prompt=query, similarity_top_k=args.top_k)
+    print("\n--- AUDIT RESULT ---")
+    print(response)
+
+
+if __name__ == "__main__":
+    main()
