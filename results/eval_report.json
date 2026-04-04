@@ -1,0 +1,48 @@
+{
+  "overall": {
+    "cases": 2,
+    "avg_source_recall": 1.0,
+    "avg_keyword_coverage": 1.0,
+    "avg_latency_seconds": 9.779000177500166
+  },
+  "per_case": [
+    {
+      "id": "contract_audit_001",
+      "question": "Provide an executive summary and identify critical termination clauses and penalties.",
+      "source_recall": 1.0,
+      "keyword_coverage": 1.0,
+      "latency_seconds": 11.533323667999866,
+      "predicted_sources": [
+        "29-05-2025_modelo_orientativo_de_contrato_de_arrendamiento_de_vivienda.odt"
+      ],
+      "expected_sources": [
+        "29-05-2025_modelo_orientativo_de_contrato_de_arrendamiento_de_vivienda.odt"
+      ],
+      "expected_keywords": [
+        "termination",
+        "penalty",
+        "notice"
+      ],
+      "answer_preview": "Based on the provided document, it appears to be a contract for rental property in Spanish. The content is mostly in Spanish, but some sections seem to be in English.\n\nExecutive Summary:\nThe contract outlines the terms and conditions of a rental agreement between the landlord (Propietario) and the tenant (Arrendatario). The agreement specifies the duration of the lease, which is 12 months, with an option for renewal. The rent is set at a specific amount per month, and the tenant is responsible f"
+    },
+    {
+      "id": "contract_audit_002",
+      "question": "List the most important deadlines and required actions for the tenant.",
+      "source_recall": 1.0,
+      "keyword_coverage": 1.0,
+      "latency_seconds": 8.024676687000465,
+      "predicted_sources": [
+        "29-05-2025_modelo_orientativo_de_contrato_de_arrendamiento_de_vivienda.odt"
+      ],
+      "expected_sources": [
+        "29-05-2025_modelo_orientativo_de_contrato_de_arrendamiento_de_vivienda.odt"
+      ],
+      "expected_keywords": [
+        "deadline",
+        "tenant",
+        "action"
+      ],
+      "answer_preview": "Based on the provided context, it appears to be a document related to a rental agreement. However, without specific details about deadlines or required actions for the tenant, I can only provide general information.\n\nTypically, in a rental agreement, some common deadlines and required actions for the tenant include:\n\n1. Payment of rent: The tenant is usually required to pay rent on time, which may be due on a specific date each month.\n2. Notice period for termination: The tenant typically needs "
+    }
+  ]
+}

@@ -17,6 +17,10 @@ def _to_float(value: str | None, default: float) -> float:
 def _to_int(value: str | None, default: int) -> int:
     if value is None:
         return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
 
 
 def _to_str(value: str | None, default: str) -> str:
@@ -25,10 +29,6 @@ def _to_str(value: str | None, default: str) -> str:
 
     cleaned = value.strip()
     return cleaned or default
-    try:
-        return int(value)
-    except ValueError:
-        return default
 
 
 @dataclass(frozen=True)

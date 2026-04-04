@@ -10,7 +10,7 @@ from rag_pipeline import AuditRAGPipeline
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Administrative AI - local legal audit assistant (Phase 1)."
+        description="Administrative AI - local legal audit assistant (Phase 2 backend)."
     )
     parser.add_argument(
         "--query",

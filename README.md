@@ -3,88 +3,83 @@
 Administrative AI is a local-first legal-document assistant for SMEs.
 It ingests contracts and administrative documents, stores embeddings in a persistent vector database, and answers audit-oriented questions through a local LLM served by LM Studio.
 
-## Phase 1 Status (Implemented)
+## Phase 2 Backend Status (Implemented)
 
-This repository now includes:
+Current backend capabilities:
 
-- A canonical RAG pipeline for both indexing and querying.
+- Canonical RAG pipeline with persistent local Chroma storage.
+- Incremental ingestion based on file hashing and manifest tracking.
+- Ingestion backend abstraction with support for PyMuPDF and optional Unstructured.
+- Structured audit output mode with citations and uncertainty notes.
 - Environment-variable based configuration.
-- Persistent local vector storage with ChromaDB.
-- Incremental ingestion using file hashing (only changed files are re-indexed).
-- Bootstrap-safe manifest logic to avoid accidental duplicate ingestion.
-- A multilingual embedding default better suited for Spanish legal corpora.
+- Baseline evaluation script and sample dataset.
 
-## Architecture
+## Core Architecture
 
-1. Configuration layer
-- `config.py` loads runtime settings from environment variables.
+1. Configuration
+- `config.py` centralizes runtime configuration from environment variables.
 
-2. RAG pipeline
-- `rag_pipeline.py` initializes LM Studio LLM access, embedding model, Chroma vector store, ingestion workflow, and query logic.
+2. Ingestion
+- `document_ingestion.py` loads documents with backend fallback strategy:
+	- PyMuPDF for PDF page extraction.
+	- Unstructured (optional) for richer parsing.
+	- LlamaIndex simple reader as safe fallback.
 
-3. Application entrypoint
-- `app.py` runs ingestion sync, prints an ingestion report, and executes a query.
+3. RAG engine
+- `rag_pipeline.py` orchestrates embedding, vector persistence, ingestion sync, retrieval, and structured audit generation.
 
-4. Data directories
-- `documents/` input files to ingest.
-- `chroma_db/` persistent vectors and ingestion manifest.
+4. CLI entrypoint
+- `app.py` runs sync + query and can emit plain or structured output.
 
-## Project Structure
-
-```text
-administrative_ai/
-├── app.py
-├── config.py
-├── rag_pipeline.py
-├── README.md
-├── environment.yml
-├── .env.example
-├── documents/
-└── app_test.ipynb
-```
+5. Evaluation
+- `evaluation.py` runs a baseline benchmark and writes a JSON report.
 
 ## Quick Start
 
-1. Create and activate the environment.
+1. Create and activate environment.
 
 ```bash
 conda env create -f environment.yml
 conda activate administrative_ai
 ```
 
-2. Configure environment variables.
+2. Configure runtime variables.
 
 ```bash
 cp .env.example .env
 ```
 
-Then export variables from `.env` in your shell (or configure them in your IDE terminal).
-
-3. Place files under `documents/`.
-
-4. Run the pipeline.
+3. Run standard structured audit mode.
 
 ```bash
 python app.py
 ```
 
-Optional flags:
+4. Useful CLI variants.
 
 ```bash
-python app.py --query "List the most critical legal risks and deadlines in this contract."
-python app.py --top-k 8
 python app.py --reindex
+python app.py --plain-text
+python app.py --query "List critical deadlines and required actions." --top-k 8
+python app.py --output-file results/latest_audit.json
 ```
 
-## Incremental Ingestion Logic
+5. Run evaluation.
 
-- The system computes a SHA-256 hash per supported file.
-- Hashes are stored in `chroma_db/ingestion_manifest.json`.
-- If a file is new or modified, its previous vectors are replaced.
-- If a file was removed from `documents/`, related vectors are deleted.
-- If no manifest exists but vectors already exist, the manifest is bootstrapped from current files to avoid duplicate indexing.
+```bash
+python evaluation.py
+python evaluation.py --dataset evaluation/sample_eval_dataset.json --top-k 8 --output results/eval_report.json
+```
 
-## Supported File Extensions (Phase 1)
+## Incremental Ingestion Behavior
+
+- Computes SHA-256 per source document.
+- Stores hashes in `chroma_db/ingestion_manifest.json`.
+- Re-indexes only new/changed files.
+- Removes vectors for files no longer present.
+- Supports manifest bootstrapping when vectors already exist.
+
+## Supported Extensions
 
 - `.pdf`
 - `.txt`
@@ -93,11 +88,11 @@ python app.py --reindex
 - `.odt`
 - `.rtf`
 
-## Recommended Environment Variables
+## Environment Variables
 
-See `.env.example` for all options.
+See `.env.example` for full list.
 
-Key variables:
+Most relevant:
 
 - `ADMIN_AI_LMSTUDIO_BASE_URL`
 - `ADMIN_AI_LLM_MODEL_NAME`
@@ -105,18 +100,21 @@ Key variables:
 - `ADMIN_AI_DOCUMENTS_DIR`
 - `ADMIN_AI_CHROMA_PATH`
 - `ADMIN_AI_CHROMA_COLLECTION_NAME`
+- `ADMIN_AI_INGESTION_BACKEND` (`auto`, `pymupdf`, `unstructured`)
+- `ADMIN_AI_UNSTRUCTURED_CHUNK_CHARS`
+- `ADMIN_AI_MAX_CITATIONS`
 
-## Notes and Limitations
+## Notes
 
-- This is not legal advice. The assistant should support legal teams, not replace professional counsel.
-- Retrieval quality depends heavily on chunking strategy and embedding model.
-- Complex scanned PDFs may require OCR or enhanced extraction in future phases.
+- This system provides legal-assistant support and is not legal advice.
+- For scanned PDFs, OCR support should be added in a subsequent iteration.
+- Retrieval quality depends on embeddings, chunking, and document quality.
 
-## Next Step After Phase 1
+## Next Step
 
-Phase 2 should focus on:
+After backend hardening and test coverage, proceed with a Streamlit frontend for:
 
-- Higher-fidelity ingestion (Unstructured, PyMuPDF, OCR for scans).
-- Structured outputs with citations and uncertainty markers.
-- Evaluation dataset and retrieval/grounding metrics.
-- Streamlit interface for document upload and audit workflow.
+- Multi-file upload and ingestion status.
+- Structured audit visualization.
+- Citation browsing and export.
+- Evaluation dashboard.
