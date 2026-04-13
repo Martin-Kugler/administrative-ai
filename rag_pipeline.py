@@ -1,12 +1,21 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 import hashlib
 import json
+import os
 from pathlib import Path
+import shutil
 from typing import Any, Dict, List
 
+import numpy as np
+
+# Work around protobuf/opentelemetry incompatibilities in some local environments.
+os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
+
 import chromadb
+from chromadb.config import Settings as ChromaClientSettings
 from llama_index.core import Settings, StorageContext, VectorStoreIndex
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.openai import OpenAI
@@ -14,6 +23,11 @@ from llama_index.vector_stores.chroma import ChromaVectorStore
 
 from config import AppConfig
 from document_ingestion import DocumentIngestionService, SUPPORTED_EXTENSIONS
+
+
+# NumPy 2 removed legacy aliases that some transitive dependencies may still reference.
+if not hasattr(np, "float_"):
+    setattr(np, "float_", np.float64)
 
 
 @dataclass
@@ -29,6 +43,8 @@ class AuditRAGPipeline:
     def __init__(self, config: AppConfig):
         self.config = config
         self.config.chroma_path.mkdir(parents=True, exist_ok=True)
+        self.recovered_from_schema_mismatch = False
+        self.schema_backup_path: str | None = None
         self.ingestion_service = DocumentIngestionService(
             backend=self.config.ingestion_backend,
             unstructured_chunk_chars=self.config.unstructured_chunk_chars,
@@ -50,11 +66,64 @@ class AuditRAGPipeline:
         Settings.chunk_overlap = self.config.chunk_overlap
 
     def _initialize_vector_store(self) -> None:
-        self.db_client = chromadb.PersistentClient(path=str(self.config.chroma_path))
-        self.collection = self.db_client.get_or_create_collection(self.config.collection_name)
+        db_path = str(self.config.chroma_path)
+        try:
+            self.db_client = self._build_db_client(db_path)
+            self.collection = self.db_client.get_or_create_collection(self.config.collection_name)
+        except Exception as error:
+            message = str(error).lower()
+            incompatible_schema = (
+                "collections.topic" in message and "no such column" in message
+            )
+
+            if not incompatible_schema:
+                raise
+
+            backup_path = self._backup_incompatible_chroma_db()
+            self.recovered_from_schema_mismatch = True
+            self.schema_backup_path = str(backup_path)
+
+            self._clear_chroma_shared_cache(db_path)
+
+            self.db_client = self._build_db_client(db_path)
+            self.collection = self.db_client.get_or_create_collection(self.config.collection_name)
+
         self.vector_store = ChromaVectorStore(chroma_collection=self.collection)
         self.storage_context = StorageContext.from_defaults(vector_store=self.vector_store)
         self.index = self._build_index_from_vector_store()
+
+    def _backup_incompatible_chroma_db(self) -> Path:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_path = self.config.chroma_path.with_name(
+            f"{self.config.chroma_path.name}_backup_{timestamp}"
+        )
+
+        if self.config.chroma_path.exists():
+            shutil.move(str(self.config.chroma_path), str(backup_path))
+
+        self.config.chroma_path.mkdir(parents=True, exist_ok=True)
+        return backup_path
+
+    @staticmethod
+    def _build_db_client(db_path: str):
+        settings = ChromaClientSettings(
+            anonymized_telemetry=False,
+            allow_reset=True,
+            is_persistent=True,
+            persist_directory=db_path,
+        )
+        return chromadb.PersistentClient(path=db_path, settings=settings)
+
+    @staticmethod
+    def _clear_chroma_shared_cache(identifier: str) -> None:
+        try:
+            from chromadb.api.client import SharedSystemClient
+
+            cache = getattr(SharedSystemClient, "_identifier_to_system", None)
+            if isinstance(cache, dict):
+                cache.pop(identifier, None)
+        except Exception:
+            pass
 
     def _build_index_from_vector_store(self) -> VectorStoreIndex:
         try:

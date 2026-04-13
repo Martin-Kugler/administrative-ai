@@ -34,6 +34,9 @@ Current backend capabilities:
 5. Evaluation
 - `evaluation.py` runs a baseline benchmark and writes a JSON report.
 
+6. Frontend
+- `streamlit_app.py` provides an interactive UI for uploads, ingestion sync, audit generation, citations, and evaluation metrics.
+
 ## Quick Start
 
 1. Create and activate environment.
@@ -70,6 +73,19 @@ python app.py --output-file results/latest_audit.json
 python evaluation.py
 python evaluation.py --dataset evaluation/sample_eval_dataset.json --top-k 8 --output results/eval_report.json
 ```
+
+6. Launch Streamlit frontend.
+
+```bash
+streamlit run streamlit_app.py
+```
+
+The frontend includes these tabs:
+
+- `Ingestion`: upload files and trigger sync/reindex.
+- `Audit`: run structured or plain responses with citations and JSON export.
+- `Evaluation`: execute dataset benchmarks and visualize KPIs.
+- `System`: inspect vector count, source files, and runtime config.
 
 ## Incremental Ingestion Behavior
 
@@ -112,9 +128,9 @@ Most relevant:
 
 ## Next Step
 
-After backend hardening and test coverage, proceed with a Streamlit frontend for:
+With the Streamlit MVP in place, the next milestone is product hardening:
 
-- Multi-file upload and ingestion status.
-- Structured audit visualization.
-- Citation browsing and export.
-- Evaluation dashboard.
+- Add authentication and per-client workspace isolation.
+- Add stronger regression evaluation with a larger benchmark set.
+- Improve extraction for scanned PDFs with OCR.
+- Add production logging and monitoring for audit traceability.
