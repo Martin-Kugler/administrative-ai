@@ -18,6 +18,175 @@ from rag_pipeline import AuditRAGPipeline, IngestionReport
 
 BASE_DIR = Path(__file__).resolve().parent
 
+TRANSLATIONS: Dict[str, Dict[str, str]] = {
+    "en": {
+        "interface_language": "Interface language",
+        "language_es": "Spanish",
+        "language_en": "English",
+        "response_language": "Response language",
+        "response_language_auto": "Auto (follow prompt language)",
+        "response_language_es": "Spanish",
+        "response_language_en": "English",
+        "response_language_effective": "Answer language: {language}",
+        "hero_title": "Administrative AI Studio",
+        "hero_description": "Upload legal documents, sync the vector index, generate grounded audits with citations, and track quality metrics in one workspace.",
+        "schema_mismatch_warning": "Detected an incompatible local Chroma schema. A backup was created at: {backup_path}. The vector store was reinitialized; run a reindex to repopulate embeddings.",
+        "control_center": "Control Center",
+        "documents_dir": "Documents dir",
+        "collection": "Collection",
+        "ingestion_backend": "Ingestion backend",
+        "retriever_top_k": "Retriever top-k",
+        "answer_mode": "Answer mode",
+        "structured_audit": "Structured audit",
+        "plain_answer": "Plain answer",
+        "tab_ingestion": "Ingestion",
+        "tab_audit": "Audit",
+        "tab_evaluation": "Evaluation",
+        "tab_system": "System",
+        "ingestion_workspace": "Ingestion Workspace",
+        "upload_documents": "Upload one or more legal documents",
+        "save_uploads": "Save uploads",
+        "no_files_selected": "No files selected.",
+        "saved_files": "Saved {count} file(s): {files}",
+        "sync_index": "Sync index",
+        "incremental_sync_completed": "Incremental sync completed.",
+        "sync_failed": "Sync failed: {error}",
+        "force_reindex": "Force reindex",
+        "full_reindex_completed": "Full reindex completed.",
+        "reindex_failed": "Reindex failed: {error}",
+        "indexed": "Indexed",
+        "removed": "Removed",
+        "skipped": "Skipped",
+        "failed": "Failed",
+        "bootstrapped": "Bootstrapped",
+        "yes": "Yes",
+        "no": "No",
+        "indexed_files": "Indexed files",
+        "removed_files": "Removed files",
+        "skipped_files": "Skipped files",
+        "failed_files": "Failed files",
+        "audit_generator": "Audit Generator",
+        "prompt": "Prompt",
+        "run_audit": "Run audit",
+        "provide_prompt": "Please provide a prompt.",
+        "audit_failed": "Audit failed: {error}",
+        "model_answer": "Model Answer",
+        "download_audit_json": "Download audit JSON",
+        "citations": "Citations",
+        "no_citations": "No citations were returned by the retriever.",
+        "executive_summary": "Executive Summary",
+        "no_summary_generated": "No summary generated.",
+        "key_risks": "Key Risks",
+        "critical_deadlines": "Critical Deadlines",
+        "recommended_actions": "Recommended Actions",
+        "uncertainty_notes": "Uncertainty Notes",
+        "no_uncertainty_notes": "No uncertainty notes provided.",
+        "no_items_detected": "No items detected.",
+        "evaluation_dashboard": "Evaluation Dashboard",
+        "dataset_path": "Dataset path",
+        "evaluation_top_k": "Evaluation top-k",
+        "run_evaluation": "Run evaluation",
+        "evaluation_finished": "Evaluation finished. Report saved to: {report_path}",
+        "evaluation_failed": "Evaluation failed: {error}",
+        "cases": "Cases",
+        "avg_source_recall": "Avg source recall",
+        "avg_keyword_coverage": "Avg keyword coverage",
+        "avg_latency_seconds": "Avg latency (s)",
+        "per_case_results": "Per-case results",
+        "system_status": "System Status",
+        "source_files": "Source files",
+        "vector_entries": "Vector entries",
+        "max_citations": "Max citations",
+        "runtime_configuration": "Runtime configuration",
+    },
+    "es": {
+        "interface_language": "Idioma de la interfaz",
+        "language_es": "Español",
+        "language_en": "Inglés",
+        "response_language": "Idioma de respuesta",
+        "response_language_auto": "Automático (según el prompt)",
+        "response_language_es": "Español",
+        "response_language_en": "Inglés",
+        "response_language_effective": "Idioma de la respuesta: {language}",
+        "hero_title": "Administrative AI Studio",
+        "hero_description": "Sube documentos legales, sincroniza el índice vectorial, genera auditorías con citas y revisa métricas de calidad en un solo lugar.",
+        "schema_mismatch_warning": "Se detectó un esquema local de Chroma incompatible. Se creó un respaldo en: {backup_path}. El vector store fue reinicializado; ejecuta un reindex para repoblar embeddings.",
+        "control_center": "Centro de control",
+        "documents_dir": "Directorio de documentos",
+        "collection": "Colección",
+        "ingestion_backend": "Backend de ingesta",
+        "retriever_top_k": "Top-k del recuperador",
+        "answer_mode": "Modo de respuesta",
+        "structured_audit": "Auditoría estructurada",
+        "plain_answer": "Respuesta simple",
+        "tab_ingestion": "Ingesta",
+        "tab_audit": "Auditoría",
+        "tab_evaluation": "Evaluación",
+        "tab_system": "Sistema",
+        "ingestion_workspace": "Espacio de Ingesta",
+        "upload_documents": "Sube uno o varios documentos legales",
+        "save_uploads": "Guardar subidas",
+        "no_files_selected": "No has seleccionado archivos.",
+        "saved_files": "Se guardaron {count} archivo(s): {files}",
+        "sync_index": "Sincronizar índice",
+        "incremental_sync_completed": "Sincronización incremental completada.",
+        "sync_failed": "Falló la sincronización: {error}",
+        "force_reindex": "Forzar reindex",
+        "full_reindex_completed": "Reindexado completo finalizado.",
+        "reindex_failed": "Falló el reindexado: {error}",
+        "indexed": "Indexados",
+        "removed": "Eliminados",
+        "skipped": "Omitidos",
+        "failed": "Fallidos",
+        "bootstrapped": "Inicializado",
+        "yes": "Sí",
+        "no": "No",
+        "indexed_files": "Archivos indexados",
+        "removed_files": "Archivos eliminados",
+        "skipped_files": "Archivos omitidos",
+        "failed_files": "Archivos con error",
+        "audit_generator": "Generador de auditorías",
+        "prompt": "Prompt",
+        "run_audit": "Ejecutar auditoría",
+        "provide_prompt": "Escribe un prompt.",
+        "audit_failed": "Falló la auditoría: {error}",
+        "model_answer": "Respuesta del modelo",
+        "download_audit_json": "Descargar auditoría JSON",
+        "citations": "Citas",
+        "no_citations": "No se devolvieron citas del recuperador.",
+        "executive_summary": "Resumen ejecutivo",
+        "no_summary_generated": "No se generó resumen.",
+        "key_risks": "Riesgos clave",
+        "critical_deadlines": "Fechas críticas",
+        "recommended_actions": "Acciones recomendadas",
+        "uncertainty_notes": "Notas de incertidumbre",
+        "no_uncertainty_notes": "Sin notas de incertidumbre.",
+        "no_items_detected": "No se detectaron elementos.",
+        "evaluation_dashboard": "Panel de evaluación",
+        "dataset_path": "Ruta del dataset",
+        "evaluation_top_k": "Top-k de evaluación",
+        "run_evaluation": "Ejecutar evaluación",
+        "evaluation_finished": "Evaluación completada. Reporte guardado en: {report_path}",
+        "evaluation_failed": "Falló la evaluación: {error}",
+        "cases": "Casos",
+        "avg_source_recall": "Recall promedio de fuentes",
+        "avg_keyword_coverage": "Cobertura promedio de palabras clave",
+        "avg_latency_seconds": "Latencia promedio (s)",
+        "per_case_results": "Resultados por caso",
+        "system_status": "Estado del sistema",
+        "source_files": "Archivos fuente",
+        "vector_entries": "Entradas vectoriales",
+        "max_citations": "Máximo de citas",
+        "runtime_configuration": "Configuración en tiempo de ejecución",
+    },
+}
+
+
+def tr(ui_language: str, key: str, **kwargs: Any) -> str:
+    language_pack = TRANSLATIONS.get(ui_language, TRANSLATIONS["en"])
+    template = language_pack.get(key, TRANSLATIONS["en"].get(key, key))
+    return template.format(**kwargs)
+
 
 def apply_custom_theme() -> None:
     st.markdown(
@@ -26,12 +195,12 @@ def apply_custom_theme() -> None:
             @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500;600&display=swap');
 
             :root {
-                --bg: #0d1117;
-                --ink: #c9d1d9;
-                --accent: #58a6ff;
-                --card: #161b22;
-                --muted: #8b949e;
-                --border: #30363d;
+                --bg: #12151b;
+                --ink: #ffffff;
+                --accent: #9ecbff;
+                --card: #2f3642;
+                --muted: #dbe2ef;
+                --border: #6f7a8c;
             }
 
             html, body, [class*="css"] {
@@ -70,7 +239,7 @@ def apply_custom_theme() -> None:
             }
 
             .hero {
-                background: linear-gradient(135deg, #161b22 0%, #21262d 100%);
+                background: linear-gradient(135deg, #2b3340 0%, #3a4454 100%);
                 border: 1px solid var(--border);
                 border-radius: 12px;
                 padding: 1.5rem 2rem;
@@ -129,10 +298,18 @@ def apply_custom_theme() -> None:
             }
 
             /* Estilos para inputs */
+            [data-testid="stTextInput"],
+            [data-testid="stTextArea"],
+            [data-testid="stNumberInput"] {
+                background-color: transparent !important;
+            }
+
             [data-testid="stTextInput"] div[data-baseweb="input"],
             [data-testid="stTextArea"] div[data-baseweb="textarea"],
-            [data-testid="stNumberInput"] div[data-baseweb="input"] {
-                background-color: #010409 !important;
+            [data-testid="stNumberInput"] div[data-baseweb="input"],
+            [data-testid="stTextInput"] div[data-baseweb="base-input"],
+            [data-testid="stTextArea"] div[data-baseweb="base-input"] {
+                background-color: #3a4352 !important;
                 border: 1px solid var(--border) !important;
                 border-radius: 6px !important;
             }
@@ -140,22 +317,35 @@ def apply_custom_theme() -> None:
             [data-testid="stTextInput"] input,
             [data-testid="stTextArea"] textarea,
             [data-testid="stNumberInput"] input {
-                color: #c9d1d9 !important;
-                -webkit-text-fill-color: #c9d1d9 !important;
+                color: #ffffff !important;
+                -webkit-text-fill-color: #ffffff !important;
                 background-color: transparent !important;
                 font-family: 'Fira Code', monospace !important;
+                caret-color: #ffffff !important;
+            }
+
+            [data-testid="stTextInput"] input:focus,
+            [data-testid="stTextArea"] textarea:focus,
+            [data-testid="stNumberInput"] input:focus {
+                outline: none !important;
+                box-shadow: none !important;
             }
 
             [data-testid="stTextInput"] input::placeholder,
             [data-testid="stTextArea"] textarea::placeholder {
-                color: #484f58 !important;
-                -webkit-text-fill-color: #484f58 !important;
+                color: #dde3ec !important;
+                -webkit-text-fill-color: #dde3ec !important;
             }
 
             /* Selectors, Popovers y Tabs */
             [data-baseweb="select"] > div {
-                background-color: #010409 !important;
+                background-color: #3a4352 !important;
                 border-color: var(--border) !important;
+            }
+
+            [data-baseweb="select"] input {
+                color: #ffffff !important;
+                -webkit-text-fill-color: #ffffff !important;
             }
 
             [data-baseweb="select"] * {
@@ -239,11 +429,14 @@ def apply_custom_theme() -> None:
             }
 
             /* Componente Dropzone (Subir archivos) */
+            [data-testid="stFileUploader"] section,
             [data-testid="stFileUploadDropzone"] {
-                background-color: #010409 !important;
+                background-color: #3a4352 !important;
                 border: 1px dashed var(--muted) !important;
+                border-radius: 8px !important;
             }
             
+            [data-testid="stFileUploader"] section *,
             [data-testid="stFileUploadDropzone"] * {
                 color: #ffffff !important;
             }
@@ -251,6 +444,31 @@ def apply_custom_theme() -> None:
             /* Dataframes (Tablas de resultados) y Métricas */
             [data-testid="stDataFrame"] div[data-baseweb="table"] {
                 background-color: var(--card) !important;
+            }
+
+            [data-testid="stDataFrame"] {
+                --gdg-bg-cell: #2f3642 !important;
+                --gdg-bg-header: #414b5d !important;
+                --gdg-bg-header-hovered: #4c5870 !important;
+                --gdg-bg-even: #313a49 !important;
+                --gdg-bg-odd: #2f3642 !important;
+                --gdg-text-dark: #ffffff !important;
+                --gdg-text-medium: #ffffff !important;
+                --gdg-header-font-style: 600 13px Inter, sans-serif !important;
+                border: 1px solid var(--border) !important;
+                border-radius: 8px !important;
+            }
+
+            [data-testid="stDataFrame"] canvas {
+                background-color: #2f3642 !important;
+            }
+
+            [data-testid="stTable"] table,
+            [data-testid="stTable"] th,
+            [data-testid="stTable"] td {
+                background-color: #2f3642 !important;
+                color: #ffffff !important;
+                border-color: var(--border) !important;
             }
             
             [data-testid="stDataFrame"] * {
@@ -262,10 +480,16 @@ def apply_custom_theme() -> None:
                 color: #ffffff !important;
             }
 
+            [data-testid="stJson"],
+            [data-testid="stJson"] * {
+                background-color: #2f3642 !important;
+                color: #ffffff !important;
+            }
+
             /* Código fuente y bloques de texto preformateados */
             code, pre {
-                background-color: #010409 !important;
-                color: var(--accent) !important;
+                background-color: #2f3642 !important;
+                color: #ffffff !important;
                 border: 1px solid var(--border) !important;
                 border-radius: 6px !important;
             }
@@ -336,32 +560,35 @@ def save_uploaded_files(files: List[Any], target_dir: Path) -> List[str]:
     return saved_files
 
 
-def render_ingestion_report(report: IngestionReport) -> None:
+def render_ingestion_report(report: IngestionReport, ui_language: str) -> None:
     cols = st.columns(5)
-    cols[0].metric("Indexed", len(report.indexed_files))
-    cols[1].metric("Removed", len(report.removed_files))
-    cols[2].metric("Skipped", len(report.skipped_files))
-    cols[3].metric("Failed", len(report.failed_files))
-    cols[4].metric("Bootstrapped", "Yes" if report.manifest_bootstrapped else "No")
+    cols[0].metric(tr(ui_language, "indexed"), len(report.indexed_files))
+    cols[1].metric(tr(ui_language, "removed"), len(report.removed_files))
+    cols[2].metric(tr(ui_language, "skipped"), len(report.skipped_files))
+    cols[3].metric(tr(ui_language, "failed"), len(report.failed_files))
+    cols[4].metric(
+        tr(ui_language, "bootstrapped"),
+        tr(ui_language, "yes") if report.manifest_bootstrapped else tr(ui_language, "no"),
+    )
 
-    with st.expander("Indexed files", expanded=bool(report.indexed_files)):
+    with st.expander(tr(ui_language, "indexed_files"), expanded=bool(report.indexed_files)):
         for item in report.indexed_files:
             st.write(f"+ {item}")
 
-    with st.expander("Removed files", expanded=False):
+    with st.expander(tr(ui_language, "removed_files"), expanded=False):
         for item in report.removed_files:
             st.write(f"- {item}")
 
-    with st.expander("Skipped files", expanded=False):
+    with st.expander(tr(ui_language, "skipped_files"), expanded=False):
         for item in report.skipped_files:
             st.write(f"~ {item}")
 
-    with st.expander("Failed files", expanded=bool(report.failed_files)):
+    with st.expander(tr(ui_language, "failed_files"), expanded=bool(report.failed_files)):
         for path, error in report.failed_files.items():
             st.write(f"{path}: {error}")
 
 
-def render_structured_output(result: Dict[str, Any]) -> None:
+def render_structured_output(result: Dict[str, Any], ui_language: str) -> None:
     summary = html.escape(str(result.get("executive_summary", "")).strip())
     uncertainty = html.escape(str(result.get("uncertainty_notes", "")).strip())
 
@@ -371,14 +598,14 @@ def render_structured_output(result: Dict[str, Any]) -> None:
 
     def _to_list(items: List[str]) -> str:
         if not items:
-            return "<li>No items detected.</li>"
+            return f"<li>{html.escape(tr(ui_language, 'no_items_detected'))}</li>"
         return "".join(f"<li>{item}</li>" for item in items)
 
     st.markdown(
         f"""
         <div class="card fade-in">
-            <h3>Executive Summary</h3>
-            <p>{summary or 'No summary generated.'}</p>
+            <h3>{html.escape(tr(ui_language, 'executive_summary'))}</h3>
+            <p>{summary or html.escape(tr(ui_language, 'no_summary_generated'))}</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -389,7 +616,7 @@ def render_structured_output(result: Dict[str, Any]) -> None:
         st.markdown(
             f"""
             <div class="card fade-in">
-                <h3>Key Risks</h3>
+                <h3>{html.escape(tr(ui_language, 'key_risks'))}</h3>
                 <ul>{_to_list(key_risks)}</ul>
             </div>
             """,
@@ -399,7 +626,7 @@ def render_structured_output(result: Dict[str, Any]) -> None:
         st.markdown(
             f"""
             <div class="card fade-in">
-                <h3>Critical Deadlines</h3>
+                <h3>{html.escape(tr(ui_language, 'critical_deadlines'))}</h3>
                 <ul>{_to_list(deadlines)}</ul>
             </div>
             """,
@@ -410,7 +637,7 @@ def render_structured_output(result: Dict[str, Any]) -> None:
         st.markdown(
             f"""
             <div class="card fade-in">
-                <h3>Recommended Actions</h3>
+                <h3>{html.escape(tr(ui_language, 'recommended_actions'))}</h3>
                 <ul>{_to_list(actions)}</ul>
             </div>
             """,
@@ -420,18 +647,18 @@ def render_structured_output(result: Dict[str, Any]) -> None:
         st.markdown(
             f"""
             <div class="card fade-in">
-                <h3>Uncertainty Notes</h3>
-                <p>{uncertainty or 'No uncertainty notes provided.'}</p>
+                <h3>{html.escape(tr(ui_language, 'uncertainty_notes'))}</h3>
+                <p>{uncertainty or html.escape(tr(ui_language, 'no_uncertainty_notes'))}</p>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
 
-def render_citations(citations: List[Dict[str, Any]]) -> None:
-    st.subheader("Citations")
+def render_citations(citations: List[Dict[str, Any]], ui_language: str) -> None:
+    st.subheader(tr(ui_language, "citations"))
     if not citations:
-        st.info("No citations were returned by the retriever.")
+        st.info(tr(ui_language, "no_citations"))
         return
 
     st.dataframe(citations, use_container_width=True, hide_index=True)
@@ -456,13 +683,29 @@ def main() -> None:
     st.set_page_config(page_title="Administrative AI Studio", layout="wide")
     apply_custom_theme()
 
+    ui_language = st.session_state.get("ui_language", "es")
+    if ui_language not in {"es", "en"}:
+        ui_language = "es"
+
+    selected_ui_language = st.sidebar.selectbox(
+        tr(ui_language, "interface_language"),
+        options=["es", "en"],
+        index=0 if ui_language == "es" else 1,
+        format_func=lambda code: tr(ui_language, f"language_{code}"),
+    )
+
+    if selected_ui_language != ui_language:
+        st.session_state["ui_language"] = selected_ui_language
+        st.rerun()
+
+    ui_language = selected_ui_language
+
     st.markdown(
-        """
+        f"""
         <div class="hero fade-in">
-            <h1>Administrative AI Studio</h1>
+            <h1>{html.escape(tr(ui_language, 'hero_title'))}</h1>
             <p>
-                Upload legal documents, sync the vector index, generate grounded audits with citations,
-                and track quality metrics in one workspace.
+                {html.escape(tr(ui_language, 'hero_description'))}
             </p>
         </div>
         """,
@@ -477,115 +720,166 @@ def main() -> None:
         and not st.session_state.get("schema_mismatch_notice_shown")
     ):
         st.warning(
-            "Detected an incompatible local Chroma schema. "
-            f"A backup was created at: {pipeline.schema_backup_path}. "
-            "The vector store was reinitialized; run a reindex to repopulate embeddings."
+            tr(
+                ui_language,
+                "schema_mismatch_warning",
+                backup_path=pipeline.schema_backup_path,
+            )
         )
         st.session_state["schema_mismatch_notice_shown"] = True
 
+    response_options = ["auto", "es", "en"]
+    saved_response_mode = st.session_state.get("response_language_mode", "auto")
+    if saved_response_mode not in response_options:
+        saved_response_mode = "auto"
+
     with st.sidebar:
-        st.header("Control Center")
-        st.write(f"Documents dir: {config.documents_dir}")
-        st.write(f"Collection: {config.collection_name}")
-        st.write(f"Ingestion backend: {config.ingestion_backend}")
-        top_k = st.slider("Retriever top-k", min_value=1, max_value=15, value=5)
+        st.header(tr(ui_language, "control_center"))
+        response_language_mode = st.selectbox(
+            tr(ui_language, "response_language"),
+            options=response_options,
+            index=response_options.index(saved_response_mode),
+            format_func=lambda option: tr(ui_language, f"response_language_{option}"),
+        )
+        st.session_state["response_language_mode"] = response_language_mode
+
+        st.write(f"{tr(ui_language, 'documents_dir')}: {config.documents_dir}")
+        st.write(f"{tr(ui_language, 'collection')}: {config.collection_name}")
+        st.write(f"{tr(ui_language, 'ingestion_backend')}: {config.ingestion_backend}")
+        top_k = st.slider(tr(ui_language, "retriever_top_k"), min_value=1, max_value=15, value=5)
         output_mode = st.radio(
-            "Answer mode",
-            options=["Structured audit", "Plain answer"],
+            tr(ui_language, "answer_mode"),
+            options=["structured", "plain"],
+            format_func=lambda option: tr(
+                ui_language,
+                "structured_audit" if option == "structured" else "plain_answer",
+            ),
             index=0,
         )
 
-    tabs = st.tabs(["Ingestion", "Audit", "Evaluation", "System"])
+    tabs = st.tabs(
+        [
+            tr(ui_language, "tab_ingestion"),
+            tr(ui_language, "tab_audit"),
+            tr(ui_language, "tab_evaluation"),
+            tr(ui_language, "tab_system"),
+        ]
+    )
 
     with tabs[0]:
-        st.subheader("Ingestion Workspace")
+        st.subheader(tr(ui_language, "ingestion_workspace"))
         uploads = st.file_uploader(
-            "Upload one or more legal documents",
+            tr(ui_language, "upload_documents"),
             type=["pdf", "txt", "md", "docx", "odt", "rtf"],
             accept_multiple_files=True,
         )
 
         save_col, sync_col, reindex_col = st.columns(3)
         with save_col:
-            if st.button("Save uploads", type="primary"):
+            if st.button(tr(ui_language, "save_uploads"), type="primary"):
                 if not uploads:
-                    st.warning("No files selected.")
+                    st.warning(tr(ui_language, "no_files_selected"))
                 else:
                     saved = save_uploaded_files(uploads, config.documents_dir)
-                    st.success(f"Saved {len(saved)} file(s): {', '.join(saved)}")
+                    st.success(
+                        tr(
+                            ui_language,
+                            "saved_files",
+                            count=len(saved),
+                            files=", ".join(saved),
+                        )
+                    )
 
         with sync_col:
-            if st.button("Sync index"):
+            if st.button(tr(ui_language, "sync_index")):
                 try:
                     report = pipeline.sync_index(force_reindex=False)
                     st.session_state["last_ingestion_report"] = report
-                    st.success("Incremental sync completed.")
+                    st.success(tr(ui_language, "incremental_sync_completed"))
                 except Exception as error:
-                    st.error(f"Sync failed: {error}")
+                    st.error(tr(ui_language, "sync_failed", error=error))
 
         with reindex_col:
-            if st.button("Force reindex"):
+            if st.button(tr(ui_language, "force_reindex")):
                 try:
                     report = pipeline.sync_index(force_reindex=True)
                     st.session_state["last_ingestion_report"] = report
-                    st.success("Full reindex completed.")
+                    st.success(tr(ui_language, "full_reindex_completed"))
                 except Exception as error:
-                    st.error(f"Reindex failed: {error}")
+                    st.error(tr(ui_language, "reindex_failed", error=error))
 
         report = st.session_state.get("last_ingestion_report")
         if report is not None:
-            render_ingestion_report(report)
+            render_ingestion_report(report, ui_language)
 
     with tabs[1]:
-        st.subheader("Audit Generator")
-        prompt = st.text_area("Prompt", value=config.default_query, height=130)
-        run_audit = st.button("Run audit", type="primary")
+        st.subheader(tr(ui_language, "audit_generator"))
+        prompt = st.text_area(tr(ui_language, "prompt"), value=config.default_query, height=130)
+        run_audit = st.button(tr(ui_language, "run_audit"), type="primary")
 
         if run_audit:
             if not prompt.strip():
-                st.warning("Please provide a prompt.")
+                st.warning(tr(ui_language, "provide_prompt"))
             else:
                 try:
-                    if output_mode == "Structured audit":
-                        result = pipeline.generate_structured_audit(prompt, similarity_top_k=top_k)
+                    if output_mode == "structured":
+                        result = pipeline.generate_structured_audit(
+                            prompt,
+                            similarity_top_k=top_k,
+                            response_language=response_language_mode,
+                        )
                         st.session_state["last_audit_mode"] = "structured"
                         st.session_state["last_audit_result"] = result
                     else:
-                        result = pipeline.query_with_sources(prompt, similarity_top_k=top_k)
+                        result = pipeline.query_with_sources(
+                            prompt,
+                            similarity_top_k=top_k,
+                            response_language=response_language_mode,
+                        )
                         st.session_state["last_audit_mode"] = "plain"
                         st.session_state["last_audit_result"] = result
                 except Exception as error:
-                    st.error(f"Audit failed: {error}")
+                    st.error(tr(ui_language, "audit_failed", error=error))
 
         mode = st.session_state.get("last_audit_mode")
         result = st.session_state.get("last_audit_result")
         if mode and result:
+            response_language = result.get("response_language") if isinstance(result, dict) else None
+            if response_language in {"es", "en"}:
+                st.caption(
+                    tr(
+                        ui_language,
+                        "response_language_effective",
+                        language=tr(ui_language, f"language_{response_language}"),
+                    )
+                )
+
             if mode == "structured":
-                render_structured_output(result)
-                render_citations(result.get("citations", []))
+                render_structured_output(result, ui_language)
+                render_citations(result.get("citations", []), ui_language)
 
                 output_json = json.dumps(result, indent=2, ensure_ascii=False)
                 download_name = f"audit_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
                 st.download_button(
-                    "Download audit JSON",
+                    tr(ui_language, "download_audit_json"),
                     data=output_json,
                     file_name=download_name,
                     mime="application/json",
                 )
             else:
-                st.markdown("### Model Answer")
+                st.markdown(f"### {tr(ui_language, 'model_answer')}")
                 st.write(result.get("answer", ""))
-                render_citations(result.get("citations", []))
+                render_citations(result.get("citations", []), ui_language)
 
     with tabs[2]:
-        st.subheader("Evaluation Dashboard")
+        st.subheader(tr(ui_language, "evaluation_dashboard"))
         dataset_path_text = st.text_input(
-            "Dataset path",
+            tr(ui_language, "dataset_path"),
             value="evaluation/sample_eval_dataset.json",
         )
-        eval_top_k = st.slider("Evaluation top-k", min_value=1, max_value=15, value=5)
+        eval_top_k = st.slider(tr(ui_language, "evaluation_top_k"), min_value=1, max_value=15, value=5)
 
-        if st.button("Run evaluation", type="primary"):
+        if st.button(tr(ui_language, "run_evaluation"), type="primary"):
             try:
                 dataset = load_eval_dataset(dataset_path_text)
                 report = run_evaluation(dataset=dataset, top_k=eval_top_k)
@@ -597,9 +891,11 @@ def main() -> None:
                     json.dumps(report, indent=2, ensure_ascii=False),
                     encoding="utf-8",
                 )
-                st.success(f"Evaluation finished. Report saved to: {report_path}")
+                st.success(
+                    tr(ui_language, "evaluation_finished", report_path=report_path)
+                )
             except Exception as error:
-                st.error(f"Evaluation failed: {error}")
+                st.error(tr(ui_language, "evaluation_failed", error=error))
 
         eval_report = st.session_state.get("last_eval_report")
         if eval_report is None:
@@ -613,16 +909,25 @@ def main() -> None:
         if eval_report:
             overall = eval_report.get("overall", {})
             kpi_cols = st.columns(4)
-            kpi_cols[0].metric("Cases", overall.get("cases", 0))
-            kpi_cols[1].metric("Avg source recall", f"{overall.get('avg_source_recall', 0.0):.2f}")
-            kpi_cols[2].metric("Avg keyword coverage", f"{overall.get('avg_keyword_coverage', 0.0):.2f}")
-            kpi_cols[3].metric("Avg latency (s)", f"{overall.get('avg_latency_seconds', 0.0):.2f}")
+            kpi_cols[0].metric(tr(ui_language, "cases"), overall.get("cases", 0))
+            kpi_cols[1].metric(
+                tr(ui_language, "avg_source_recall"),
+                f"{overall.get('avg_source_recall', 0.0):.2f}",
+            )
+            kpi_cols[2].metric(
+                tr(ui_language, "avg_keyword_coverage"),
+                f"{overall.get('avg_keyword_coverage', 0.0):.2f}",
+            )
+            kpi_cols[3].metric(
+                tr(ui_language, "avg_latency_seconds"),
+                f"{overall.get('avg_latency_seconds', 0.0):.2f}",
+            )
 
-            st.markdown("### Per-case results")
+            st.markdown(f"### {tr(ui_language, 'per_case_results')}")
             st.dataframe(eval_report.get("per_case", []), use_container_width=True, hide_index=True)
 
     with tabs[3]:
-        st.subheader("System Status")
+        st.subheader(tr(ui_language, "system_status"))
         source_files = [
             path
             for path in config.documents_dir.rglob("*")
@@ -630,11 +935,11 @@ def main() -> None:
         ] if config.documents_dir.exists() else []
 
         col_a, col_b, col_c = st.columns(3)
-        col_a.metric("Source files", len(source_files))
-        col_b.metric("Vector entries", pipeline.collection.count())
-        col_c.metric("Max citations", config.max_citations)
+        col_a.metric(tr(ui_language, "source_files"), len(source_files))
+        col_b.metric(tr(ui_language, "vector_entries"), pipeline.collection.count())
+        col_c.metric(tr(ui_language, "max_citations"), config.max_citations)
 
-        st.markdown("### Runtime configuration")
+        st.markdown(f"### {tr(ui_language, 'runtime_configuration')}")
         st.json(
             {
                 "lmstudio_base_url": config.lmstudio_base_url,

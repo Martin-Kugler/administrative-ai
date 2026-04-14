@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 from typing import Any, Dict, List
 
@@ -117,7 +118,17 @@ class AuditRAGPipeline:
     @staticmethod
     def _clear_chroma_shared_cache(identifier: str) -> None:
         try:
-            from chromadb.api.client import SharedSystemClient
+            import importlib
+
+            module = None
+            try:
+                module = importlib.import_module("chromadb.api.shared_system_client")
+            except Exception:
+                module = importlib.import_module("chromadb.api.client")
+
+            SharedSystemClient = getattr(module, "SharedSystemClient", None)
+            if SharedSystemClient is None:
+                return
 
             cache = getattr(SharedSystemClient, "_identifier_to_system", None)
             if isinstance(cache, dict):
@@ -356,19 +367,67 @@ class AuditRAGPipeline:
         }
         return normalized
 
-    def query_with_sources(self, prompt: str, similarity_top_k: int = 5) -> Dict[str, Any]:
+    @staticmethod
+    def _detect_prompt_language(prompt: str) -> str:
+        text = prompt.lower()
+        spanish_markers = re.findall(
+            r"\b(el|la|los|las|de|del|que|con|para|como|contrato|clausula|riesgo|plazo|auditoria|documento)\b",
+            text,
+        )
+        english_markers = re.findall(
+            r"\b(the|and|for|with|that|contract|clause|risk|deadline|audit|document)\b",
+            text,
+        )
+
+        has_spanish_symbols = any(char in text for char in "\u00e1\u00e9\u00ed\u00f3\u00fa\u00f1\u00bf\u00a1")
+        if has_spanish_symbols or (len(spanish_markers) >= 2 and len(spanish_markers) >= len(english_markers)):
+            return "es"
+        return "en"
+
+    def _resolve_response_language(self, prompt: str, response_language: str) -> str:
+        normalized = (response_language or "auto").strip().lower()
+        if normalized in {"es", "en"}:
+            return normalized
+        return self._detect_prompt_language(prompt)
+
+    @staticmethod
+    def _get_language_instruction(language: str) -> str:
+        if language == "es":
+            return "Respond in Spanish. Keep legal terms and proper names exactly as they appear in source documents."
+        return "Respond in English. Keep legal terms and proper names exactly as they appear in source documents."
+
+    def query_with_sources(
+        self,
+        prompt: str,
+        similarity_top_k: int = 5,
+        response_language: str = "auto",
+    ) -> Dict[str, Any]:
         if self.collection.count() == 0:
             raise RuntimeError("Index is empty. Add documents before querying.")
 
+        effective_language = self._resolve_response_language(prompt, response_language)
+        language_instruction = self._get_language_instruction(effective_language)
+        query_prompt = f"{language_instruction}\n\nUser request:\n{prompt.strip()}"
+
         query_engine = self.index.as_query_engine(similarity_top_k=similarity_top_k)
-        response = query_engine.query(prompt)
+        response = query_engine.query(query_prompt)
 
         return {
             "answer": str(response),
             "citations": self._extract_citations(response),
+            "response_language": effective_language,
         }
 
-    def generate_structured_audit(self, prompt: str, similarity_top_k: int = 5) -> Dict[str, Any]:
+    def generate_structured_audit(
+        self,
+        prompt: str,
+        similarity_top_k: int = 5,
+        response_language: str = "auto",
+    ) -> Dict[str, Any]:
+        effective_language = self._resolve_response_language(prompt, response_language)
+        language_schema_instruction = (
+            "All string values must be in Spanish." if effective_language == "es" else "All string values must be in English."
+        )
         schema_instruction = (
             "Return strict JSON with these keys only: "
             "executive_summary (string), "
@@ -381,11 +440,15 @@ class AuditRAGPipeline:
         )
         combined_prompt = (
             "You are an assistant for SME legal-document audits. "
-            f"{schema_instruction}\n\n"
+            f"{schema_instruction} {language_schema_instruction}\n\n"
             f"User request: {prompt}"
         )
 
-        payload = self.query_with_sources(combined_prompt, similarity_top_k=similarity_top_k)
+        payload = self.query_with_sources(
+            combined_prompt,
+            similarity_top_k=similarity_top_k,
+            response_language=effective_language,
+        )
         parsed_payload = self._safe_parse_structured_json(payload["answer"]) or {}
         normalized = self._normalize_structured_payload(parsed_payload)
 
@@ -393,12 +456,24 @@ class AuditRAGPipeline:
             normalized["executive_summary"] = payload["answer"].strip()
 
         if not normalized["uncertainty_notes"]:
-            normalized[
-                "uncertainty_notes"
-            ] = "Generated from retrieved chunks only; missing or low-quality source text may reduce completeness."
+            if effective_language == "es":
+                normalized[
+                    "uncertainty_notes"
+                ] = "Generado solo con fragmentos recuperados; si faltan evidencias o son de baja calidad, la respuesta puede ser incompleta."
+            else:
+                normalized[
+                    "uncertainty_notes"
+                ] = "Generated from retrieved chunks only; missing or low-quality source text may reduce completeness."
 
         normalized["citations"] = payload["citations"]
+        normalized["response_language"] = effective_language
         return normalized
 
-    def query(self, prompt: str, similarity_top_k: int = 5) -> str:
-        return str(self.query_with_sources(prompt, similarity_top_k=similarity_top_k)["answer"])
+    def query(self, prompt: str, similarity_top_k: int = 5, response_language: str = "auto") -> str:
+        return str(
+            self.query_with_sources(
+                prompt,
+                similarity_top_k=similarity_top_k,
+                response_language=response_language,
+            )["answer"]
+        )
