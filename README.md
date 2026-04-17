@@ -86,6 +86,35 @@ The frontend includes these tabs:
 - `Audit`: run structured or plain responses with citations and JSON export.
 - `Evaluation`: execute dataset benchmarks and visualize KPIs.
 - `System`: inspect vector count, source files, and runtime config.
+- `Feedback`: collect user feedback (rating + comments) and store it as JSONL.
+
+## Beta Hardening Features
+
+- Optional login gate for closed beta access.
+- Structured app logging with rotating log files.
+- In-app feedback capture for rapid iteration.
+
+### Enable Closed Beta Auth
+
+Set these variables in `.env`:
+
+```bash
+ADMIN_AI_AUTH_ENABLED=true
+ADMIN_AI_AUTH_USERNAME=admin
+ADMIN_AI_AUTH_PASSWORD=change_me_now
+```
+
+When enabled, users must sign in before using the app.
+
+### Feedback and Logs
+
+```bash
+ADMIN_AI_FEEDBACK_PATH=./results/feedback.jsonl
+ADMIN_AI_LOG_PATH=./logs/app.log
+```
+
+- Feedback is appended as one JSON object per line.
+- Logs rotate automatically to keep file size bounded.
 
 ## Incremental Ingestion Behavior
 
@@ -119,6 +148,11 @@ Most relevant:
 - `ADMIN_AI_INGESTION_BACKEND` (`auto`, `pymupdf`, `unstructured`)
 - `ADMIN_AI_UNSTRUCTURED_CHUNK_CHARS`
 - `ADMIN_AI_MAX_CITATIONS`
+- `ADMIN_AI_AUTH_ENABLED`
+- `ADMIN_AI_AUTH_USERNAME`
+- `ADMIN_AI_AUTH_PASSWORD`
+- `ADMIN_AI_FEEDBACK_PATH`
+- `ADMIN_AI_LOG_PATH`
 
 ## Notes
 

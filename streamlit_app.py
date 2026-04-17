@@ -3,9 +3,12 @@ from __future__ import annotations
 from datetime import datetime
 import html
 import json
+import logging
+from logging.handlers import RotatingFileHandler
 import os
 from pathlib import Path
 from typing import Any, Dict, List
+import uuid
 
 from dotenv import load_dotenv
 import streamlit as st
@@ -98,6 +101,31 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "vector_entries": "Vector entries",
         "max_citations": "Max citations",
         "runtime_configuration": "Runtime configuration",
+        "pipeline_init_failed": "Pipeline initialization failed: {error}",
+        "auth_title": "Access Required",
+        "auth_subtitle": "Sign in to use this beta workspace.",
+        "auth_username": "Username",
+        "auth_password": "Password",
+        "auth_login": "Sign in",
+        "auth_logout": "Sign out",
+        "auth_invalid_credentials": "Invalid credentials.",
+        "auth_missing_password": "Authentication is enabled but ADMIN_AI_AUTH_PASSWORD is empty. Set it in your .env file.",
+        "auth_welcome": "Signed in as: {user}",
+        "tab_feedback": "Feedback",
+        "feedback_title": "Feedback",
+        "feedback_help": "Share what worked and what failed so we can improve quickly.",
+        "feedback_rating": "Overall experience (1-5)",
+        "feedback_category": "Category",
+        "feedback_category_quality": "Answer quality",
+        "feedback_category_ui": "User interface",
+        "feedback_category_bug": "Bug or error",
+        "feedback_category_feature": "Feature request",
+        "feedback_comment": "Comment",
+        "feedback_include_context": "Attach session context (prompt/mode)",
+        "feedback_submit": "Send feedback",
+        "feedback_comment_required": "Please add a short comment before sending feedback.",
+        "feedback_success": "Feedback saved. Thank you!",
+        "feedback_submit_error": "Failed to save feedback: {error}",
     },
     "es": {
         "interface_language": "Idioma de la interfaz",
@@ -178,6 +206,31 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "vector_entries": "Entradas vectoriales",
         "max_citations": "Máximo de citas",
         "runtime_configuration": "Configuración en tiempo de ejecución",
+        "pipeline_init_failed": "Falló la inicialización del pipeline: {error}",
+        "auth_title": "Acceso requerido",
+        "auth_subtitle": "Inicia sesión para usar este espacio beta.",
+        "auth_username": "Usuario",
+        "auth_password": "Contraseña",
+        "auth_login": "Iniciar sesión",
+        "auth_logout": "Cerrar sesión",
+        "auth_invalid_credentials": "Credenciales inválidas.",
+        "auth_missing_password": "La autenticación está activa pero ADMIN_AI_AUTH_PASSWORD está vacío. Configúralo en tu archivo .env.",
+        "auth_welcome": "Sesión iniciada como: {user}",
+        "tab_feedback": "Feedback",
+        "feedback_title": "Feedback",
+        "feedback_help": "Comparte qué funcionó y qué falló para mejorar rápido.",
+        "feedback_rating": "Experiencia general (1-5)",
+        "feedback_category": "Categoría",
+        "feedback_category_quality": "Calidad de respuesta",
+        "feedback_category_ui": "Interfaz",
+        "feedback_category_bug": "Bug o error",
+        "feedback_category_feature": "Solicitud de funcionalidad",
+        "feedback_comment": "Comentario",
+        "feedback_include_context": "Adjuntar contexto de la sesión (prompt/modo)",
+        "feedback_submit": "Enviar feedback",
+        "feedback_comment_required": "Escribe un comentario breve antes de enviar feedback.",
+        "feedback_success": "Feedback guardado. ¡Gracias!",
+        "feedback_submit_error": "No se pudo guardar el feedback: {error}",
     },
 }
 
@@ -186,6 +239,67 @@ def tr(ui_language: str, key: str, **kwargs: Any) -> str:
     language_pack = TRANSLATIONS.get(ui_language, TRANSLATIONS["en"])
     template = language_pack.get(key, TRANSLATIONS["en"].get(key, key))
     return template.format(**kwargs)
+
+
+def setup_app_logger(log_path: Path) -> logging.Logger:
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    logger = logging.getLogger("administrative_ai")
+
+    if not logger.handlers:
+        logger.setLevel(logging.INFO)
+        file_handler = RotatingFileHandler(
+            filename=str(log_path),
+            maxBytes=2_000_000,
+            backupCount=3,
+            encoding="utf-8",
+        )
+        file_handler.setFormatter(
+            logging.Formatter("%(asctime)s | %(levelname)s | %(message)s")
+        )
+        logger.addHandler(file_handler)
+        logger.propagate = False
+
+    return logger
+
+
+def append_jsonl(file_path: Path, payload: Dict[str, Any]) -> None:
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    with file_path.open("a", encoding="utf-8") as stream:
+        stream.write(json.dumps(payload, ensure_ascii=False))
+        stream.write("\n")
+
+
+def enforce_authentication(config: AppConfig, ui_language: str, logger: logging.Logger) -> None:
+    if not config.auth_enabled:
+        return
+
+    if not config.auth_password:
+        st.error(tr(ui_language, "auth_missing_password"))
+        st.stop()
+
+    if st.session_state.get("auth_ok"):
+        return
+
+    st.subheader(tr(ui_language, "auth_title"))
+    st.caption(tr(ui_language, "auth_subtitle"))
+
+    with st.form("auth_form", clear_on_submit=False):
+        username = st.text_input(tr(ui_language, "auth_username"), value="")
+        password = st.text_input(tr(ui_language, "auth_password"), value="", type="password")
+        submitted = st.form_submit_button(tr(ui_language, "auth_login"), type="primary")
+
+    if submitted:
+        normalized_username = username.strip()
+        if normalized_username == config.auth_username and password == config.auth_password:
+            st.session_state["auth_ok"] = True
+            st.session_state["auth_user"] = normalized_username
+            logger.info("auth_login_success | user=%s", normalized_username)
+            st.rerun()
+
+        logger.warning("auth_login_failed | user=%s", normalized_username)
+        st.error(tr(ui_language, "auth_invalid_credentials"))
+
+    st.stop()
 
 
 def apply_custom_theme() -> None:
@@ -536,8 +650,9 @@ def get_config_signature(config: AppConfig) -> str:
     )
 
 
-def get_pipeline() -> tuple[AppConfig, AuditRAGPipeline]:
-    config = AppConfig.from_env()
+def get_pipeline(config: AppConfig | None = None) -> tuple[AppConfig, AuditRAGPipeline]:
+    if config is None:
+        config = AppConfig.from_env()
     signature = get_config_signature(config)
 
     if st.session_state.get("pipeline_signature") != signature:
@@ -699,6 +814,19 @@ def main() -> None:
         st.rerun()
 
     ui_language = selected_ui_language
+    config = AppConfig.from_env()
+    logger = setup_app_logger(config.log_path)
+
+    session_id = st.session_state.setdefault("session_id", uuid.uuid4().hex[:12])
+    if not st.session_state.get("session_started_logged"):
+        logger.info(
+            "session_started | session_id=%s | ui_language=%s",
+            session_id,
+            ui_language,
+        )
+        st.session_state["session_started_logged"] = True
+
+    enforce_authentication(config, ui_language, logger)
 
     st.markdown(
         f"""
@@ -712,7 +840,13 @@ def main() -> None:
         unsafe_allow_html=True,
     )
 
-    config, pipeline = get_pipeline()
+    try:
+        config, pipeline = get_pipeline(config)
+    except Exception as error:
+        logger.exception("pipeline_init_failed | session_id=%s", session_id)
+        st.error(tr(ui_language, "pipeline_init_failed", error=error))
+        st.stop()
+
     config.documents_dir.mkdir(parents=True, exist_ok=True)
 
     if (
@@ -735,6 +869,19 @@ def main() -> None:
 
     with st.sidebar:
         st.header(tr(ui_language, "control_center"))
+        if config.auth_enabled:
+            current_user = st.session_state.get("auth_user", config.auth_username)
+            st.caption(tr(ui_language, "auth_welcome", user=current_user))
+            if st.button(tr(ui_language, "auth_logout"), key="auth_logout_button"):
+                logger.info(
+                    "auth_logout | session_id=%s | user=%s",
+                    session_id,
+                    current_user,
+                )
+                st.session_state.pop("auth_ok", None)
+                st.session_state.pop("auth_user", None)
+                st.rerun()
+
         response_language_mode = st.selectbox(
             tr(ui_language, "response_language"),
             options=response_options,
@@ -763,6 +910,7 @@ def main() -> None:
             tr(ui_language, "tab_audit"),
             tr(ui_language, "tab_evaluation"),
             tr(ui_language, "tab_system"),
+            tr(ui_language, "tab_feedback"),
         ]
     )
 
@@ -797,6 +945,7 @@ def main() -> None:
                     st.session_state["last_ingestion_report"] = report
                     st.success(tr(ui_language, "incremental_sync_completed"))
                 except Exception as error:
+                    logger.exception("sync_failed | session_id=%s", session_id)
                     st.error(tr(ui_language, "sync_failed", error=error))
 
         with reindex_col:
@@ -806,6 +955,7 @@ def main() -> None:
                     st.session_state["last_ingestion_report"] = report
                     st.success(tr(ui_language, "full_reindex_completed"))
                 except Exception as error:
+                    logger.exception("reindex_failed | session_id=%s", session_id)
                     st.error(tr(ui_language, "reindex_failed", error=error))
 
         report = st.session_state.get("last_ingestion_report")
@@ -821,6 +971,7 @@ def main() -> None:
             if not prompt.strip():
                 st.warning(tr(ui_language, "provide_prompt"))
             else:
+                st.session_state["last_prompt"] = prompt.strip()
                 try:
                     if output_mode == "structured":
                         result = pipeline.generate_structured_audit(
@@ -839,6 +990,11 @@ def main() -> None:
                         st.session_state["last_audit_mode"] = "plain"
                         st.session_state["last_audit_result"] = result
                 except Exception as error:
+                    logger.exception(
+                        "audit_failed | session_id=%s | mode=%s",
+                        session_id,
+                        output_mode,
+                    )
                     st.error(tr(ui_language, "audit_failed", error=error))
 
         mode = st.session_state.get("last_audit_mode")
@@ -895,6 +1051,7 @@ def main() -> None:
                     tr(ui_language, "evaluation_finished", report_path=report_path)
                 )
             except Exception as error:
+                logger.exception("evaluation_failed | session_id=%s", session_id)
                 st.error(tr(ui_language, "evaluation_failed", error=error))
 
         eval_report = st.session_state.get("last_eval_report")
@@ -904,6 +1061,11 @@ def main() -> None:
                 try:
                     eval_report = json.loads(default_report_path.read_text(encoding="utf-8"))
                 except Exception:
+                    logger.exception(
+                        "evaluation_report_read_failed | session_id=%s | path=%s",
+                        session_id,
+                        default_report_path,
+                    )
                     eval_report = None
 
         if eval_report:
@@ -953,6 +1115,70 @@ def main() -> None:
                 "chunk_overlap": config.chunk_overlap,
             }
         )
+
+    with tabs[4]:
+        st.subheader(tr(ui_language, "feedback_title"))
+        st.caption(tr(ui_language, "feedback_help"))
+
+        feedback_rating = st.slider(
+            tr(ui_language, "feedback_rating"),
+            min_value=1,
+            max_value=5,
+            value=4,
+        )
+        feedback_categories = ["quality", "ui", "bug", "feature"]
+        feedback_category = st.selectbox(
+            tr(ui_language, "feedback_category"),
+            options=feedback_categories,
+            format_func=lambda category: tr(ui_language, f"feedback_category_{category}"),
+        )
+        feedback_comment = st.text_area(
+            tr(ui_language, "feedback_comment"),
+            value="",
+            height=140,
+        )
+        attach_context = st.checkbox(
+            tr(ui_language, "feedback_include_context"),
+            value=True,
+        )
+
+        if st.button(tr(ui_language, "feedback_submit"), type="primary"):
+            if not feedback_comment.strip():
+                st.warning(tr(ui_language, "feedback_comment_required"))
+            else:
+                feedback_payload: Dict[str, Any] = {
+                    "timestamp": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+                    "session_id": session_id,
+                    "user": st.session_state.get("auth_user") if config.auth_enabled else None,
+                    "ui_language": ui_language,
+                    "response_language_mode": st.session_state.get("response_language_mode", "auto"),
+                    "rating": feedback_rating,
+                    "category": feedback_category,
+                    "comment": feedback_comment.strip(),
+                }
+
+                if attach_context:
+                    feedback_payload["context"] = {
+                        "last_prompt": st.session_state.get("last_prompt"),
+                        "last_audit_mode": st.session_state.get("last_audit_mode"),
+                    }
+
+                try:
+                    append_jsonl(config.feedback_path, feedback_payload)
+                    logger.info(
+                        "feedback_submitted | session_id=%s | category=%s | rating=%s",
+                        session_id,
+                        feedback_category,
+                        feedback_rating,
+                    )
+                    st.success(tr(ui_language, "feedback_success"))
+                except Exception as error:
+                    logger.exception(
+                        "feedback_submit_failed | session_id=%s | path=%s",
+                        session_id,
+                        config.feedback_path,
+                    )
+                    st.error(tr(ui_language, "feedback_submit_error", error=error))
 
 
 if __name__ == "__main__":

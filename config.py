@@ -31,6 +31,18 @@ def _to_str(value: str | None, default: str) -> str:
     return cleaned or default
 
 
+def _to_bool(value: str | None, default: bool) -> bool:
+    if value is None:
+        return default
+
+    cleaned = value.strip().lower()
+    if cleaned in {"1", "true", "yes", "y", "on"}:
+        return True
+    if cleaned in {"0", "false", "no", "n", "off"}:
+        return False
+    return default
+
+
 @dataclass(frozen=True)
 class AppConfig:
     lmstudio_base_url: str
@@ -48,6 +60,11 @@ class AppConfig:
     ingestion_backend: str
     unstructured_chunk_chars: int
     max_citations: int
+    auth_enabled: bool
+    auth_username: str
+    auth_password: str
+    feedback_path: Path
+    log_path: Path
 
     @classmethod
     def from_env(cls) -> "AppConfig":
@@ -62,6 +79,12 @@ class AppConfig:
                 "ADMIN_AI_MANIFEST_PATH",
                 str(chroma_path / "ingestion_manifest.json"),
             )
+        ).resolve()
+        feedback_path = Path(
+            os.getenv("ADMIN_AI_FEEDBACK_PATH", "./results/feedback.jsonl")
+        ).resolve()
+        log_path = Path(
+            os.getenv("ADMIN_AI_LOG_PATH", "./logs/app.log")
         ).resolve()
 
         return cls(
@@ -104,4 +127,9 @@ class AppConfig:
                 1800,
             ),
             max_citations=_to_int(os.getenv("ADMIN_AI_MAX_CITATIONS"), 6),
+            auth_enabled=_to_bool(os.getenv("ADMIN_AI_AUTH_ENABLED"), False),
+            auth_username=_to_str(os.getenv("ADMIN_AI_AUTH_USERNAME"), "admin"),
+            auth_password=os.getenv("ADMIN_AI_AUTH_PASSWORD", ""),
+            feedback_path=feedback_path,
+            log_path=log_path,
         )
