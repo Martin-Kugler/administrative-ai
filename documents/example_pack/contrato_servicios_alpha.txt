@@ -1,0 +1,21 @@
+CONTRATO DE SERVICIOS PROFESIONALES - ALPHA
+
+Entre ALPHA CONSULTORES S.L. (Proveedor) y NOVA RETAIL S.L. (Cliente) se acuerda lo siguiente:
+
+1. Objeto
+El Proveedor prestara servicios de soporte operativo y analitica documental.
+
+2. Vigencia
+La vigencia inicial del contrato sera de 12 meses desde la firma.
+
+3. Terminacion anticipada
+Cualquiera de las partes podra resolver el contrato con preaviso escrito de 30 dias.
+Si la resolucion sin causa se produce antes del mes 6, aplica una penalidad equivalente a 2 mensualidades.
+
+4. Pagos
+El Cliente pagara facturas a 45 dias fecha de factura.
+En caso de mora, aplica interes del 1.5% mensual sobre saldo vencido.
+
+5. Niveles de servicio
+Disponibilidad objetivo del servicio: 99.5% mensual.
+Tiempo maximo de respuesta para incidentes criticos: 4 horas.

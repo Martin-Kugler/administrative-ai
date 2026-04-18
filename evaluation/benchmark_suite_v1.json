@@ -1,0 +1,146 @@
+[
+  {
+    "id": "bench_001_termination_penalty_alpha",
+    "question": "Resume las condiciones de terminacion anticipada y la penalidad del contrato ALPHA.",
+    "expected_sources": [
+      "example_pack/contrato_servicios_alpha.txt"
+    ],
+    "expected_keywords": [
+      "preaviso",
+      "30 dias",
+      "penalidad",
+      "2 mensualidades"
+    ]
+  },
+  {
+    "id": "bench_002_payment_terms_alpha",
+    "question": "What are the payment terms and late-payment consequences in the ALPHA contract?",
+    "expected_sources": [
+      "example_pack/contrato_servicios_alpha.txt"
+    ],
+    "expected_keywords": [
+      "45",
+      "1.5%",
+      "mora"
+    ]
+  },
+  {
+    "id": "bench_003_procurement_thresholds_beta",
+    "question": "Indica los umbrales de aprobacion de compras en BETA INDUSTRIES.",
+    "expected_sources": [
+      "example_pack/politica_compras_beta.md"
+    ],
+    "expected_keywords": [
+      "500",
+      "5000",
+      "direccion financiera"
+    ]
+  },
+  {
+    "id": "bench_004_procurement_deadlines_beta",
+    "question": "Que plazos operativos define la politica de compras para solicitud y validacion presupuestaria?",
+    "expected_sources": [
+      "example_pack/politica_compras_beta.md"
+    ],
+    "expected_keywords": [
+      "5 dias",
+      "48 horas",
+      "presupuestaria"
+    ]
+  },
+  {
+    "id": "bench_005_nda_duration_gamma",
+    "question": "How long does confidentiality remain in force in the GAMMA NDA?",
+    "expected_sources": [
+      "example_pack/acuerdo_confidencialidad_gamma.md"
+    ],
+    "expected_keywords": [
+      "3 anos",
+      "confidencialidad"
+    ]
+  },
+  {
+    "id": "bench_006_nda_retention_gamma",
+    "question": "En cuanto tiempo deben eliminarse o devolverse los documentos confidenciales segun el acuerdo GAMMA?",
+    "expected_sources": [
+      "example_pack/acuerdo_confidencialidad_gamma.md"
+    ],
+    "expected_keywords": [
+      "15 dias",
+      "eliminarse",
+      "devolverse"
+    ]
+  },
+  {
+    "id": "bench_007_incident_critical_delta",
+    "question": "What is the critical incident first-response and mitigation SLA in DELTA OPS?",
+    "expected_sources": [
+      "example_pack/protocolo_incidentes_delta.txt"
+    ],
+    "expected_keywords": [
+      "1 hora",
+      "4 horas",
+      "critico"
+    ]
+  },
+  {
+    "id": "bench_008_incident_escalation_delta",
+    "question": "Describe la regla de escalamiento para incidentes criticos en DELTA OPS.",
+    "expected_sources": [
+      "example_pack/protocolo_incidentes_delta.txt"
+    ],
+    "expected_keywords": [
+      "escala",
+      "direccion de operaciones",
+      "ciso"
+    ]
+  },
+  {
+    "id": "bench_009_maintenance_windows_epsilon",
+    "question": "Que ventana de mantenimiento y notificacion previa exige el anexo EPSILON CLOUD?",
+    "expected_sources": [
+      "example_pack/anexo_mantenimiento_epsilon.pdf"
+    ],
+    "expected_keywords": [
+      "domingos",
+      "02:00",
+      "72 horas"
+    ]
+  },
+  {
+    "id": "bench_010_sla_credit_epsilon",
+    "question": "When does the EPSILON maintenance annex grant a billing credit, and what percentage is it?",
+    "expected_sources": [
+      "example_pack/anexo_mantenimiento_epsilon.pdf"
+    ],
+    "expected_keywords": [
+      "99.5%",
+      "10%",
+      "credito"
+    ]
+  },
+  {
+    "id": "bench_011_renewal_notice_zeta",
+    "question": "Explica la renovacion y el preaviso del contrato de licencia ZETA.",
+    "expected_sources": [
+      "example_pack/contrato_licencia_zeta.pdf"
+    ],
+    "expected_keywords": [
+      "renovacion automatica",
+      "60 dias",
+      "vencimiento"
+    ]
+  },
+  {
+    "id": "bench_012_payment_default_zeta",
+    "question": "What remedy is available if payment is delayed for more than 30 days in the ZETA license contract?",
+    "expected_sources": [
+      "example_pack/contrato_licencia_zeta.pdf"
+    ],
+    "expected_keywords": [
+      "30 dias",
+      "suspender",
+      "7 dias"
+    ]
+  }
+]

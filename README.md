@@ -87,6 +87,7 @@ The frontend includes these tabs:
 - `Evaluation`: execute dataset benchmarks and visualize KPIs.
 - `System`: inspect vector count, source files, and runtime config.
 - `Feedback`: collect user feedback (rating + comments) and store it as JSONL.
+- `Admin Review`: inspect feedback metrics and recent application logs from the UI (requires auth enabled).
 
 ## Beta Hardening Features
 
@@ -115,6 +116,49 @@ ADMIN_AI_LOG_PATH=./logs/app.log
 
 - Feedback is appended as one JSON object per line.
 - Logs rotate automatically to keep file size bounded.
+
+### What Is Admin Review?
+
+`Admin Review` is an internal QA/operations panel designed for beta rollout.
+
+- Shows feedback KPIs (count, average rating, unique sessions).
+- Lets you filter feedback by category.
+- Displays recent feedback entries in a table.
+- Shows recent log lines to quickly spot runtime issues.
+
+This helps close the loop between user feedback and technical errors without leaving the app.
+
+## Benchmark Pack and Example Documents
+
+The repository includes a synthetic benchmark pack for safe, repeatable validation:
+
+- Example docs in `documents/example_pack/`
+	- `contrato_servicios_alpha.txt`
+	- `politica_compras_beta.md`
+	- `acuerdo_confidencialidad_gamma.md`
+	- `protocolo_incidentes_delta.txt`
+	- `anexo_mantenimiento_epsilon.pdf`
+	- `contrato_licencia_zeta.pdf`
+- Benchmark dataset in `evaluation/benchmark_suite_v1.json` (12 cases).
+
+If you want to regenerate the synthetic PDFs:
+
+```bash
+python scripts/generate_example_pdfs.py
+```
+
+Run benchmark:
+
+```bash
+python evaluation.py --dataset evaluation/benchmark_suite_v1.json --top-k 5 --output results/benchmark_v1_report.json
+```
+
+Recommended flow:
+
+1. Run `streamlit run streamlit_app.py`.
+2. In `Ingestion`, click `Force reindex` to ingest `documents/example_pack/`.
+3. In `Evaluation`, set dataset path to `evaluation/benchmark_suite_v1.json` and run evaluation.
+4. Review KPIs and per-case outputs.
 
 ## Incremental Ingestion Behavior
 

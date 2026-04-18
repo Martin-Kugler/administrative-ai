@@ -1,26 +1,37 @@
-[
+[ 
   {
-    "id": "contract_audit_001",
-    "question": "Provide an executive summary and identify critical termination clauses and penalties.",
+    "id": "sample_001_alpha_termination",
+    "question": "Resume la terminacion anticipada y penalidades del contrato ALPHA.",
     "expected_sources": [
-      "29-05-2025_modelo_orientativo_de_contrato_de_arrendamiento_de_vivienda.odt"
+      "example_pack/contrato_servicios_alpha.txt"
     ],
     "expected_keywords": [
-      "termination",
-      "penalty",
-      "notice"
+      "preaviso",
+      "penalidad",
+      "30 dias"
     ]
   },
   {
-    "id": "contract_audit_002",
-    "question": "List the most important deadlines and required actions for the tenant.",
+    "id": "sample_002_beta_thresholds",
+    "question": "What are the procurement approval thresholds in BETA INDUSTRIES?",
     "expected_sources": [
-      "29-05-2025_modelo_orientativo_de_contrato_de_arrendamiento_de_vivienda.odt"
+      "example_pack/politica_compras_beta.md"
     ],
     "expected_keywords": [
-      "deadline",
-      "tenant",
-      "action"
+      "500",
+      "5000",
+      "gerencia"
+    ]
+  },
+  {
+    "id": "sample_003_zeta_renewal",
+    "question": "Cual es el aviso de renovacion del contrato de licencia ZETA?",
+    "expected_sources": [
+      "example_pack/contrato_licencia_zeta.pdf"
+    ],
+    "expected_keywords": [
+      "renovacion",
+      "60 dias"
     ]
   }
 ]

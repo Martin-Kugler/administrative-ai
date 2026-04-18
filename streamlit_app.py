@@ -126,6 +126,18 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "feedback_comment_required": "Please add a short comment before sending feedback.",
         "feedback_success": "Feedback saved. Thank you!",
         "feedback_submit_error": "Failed to save feedback: {error}",
+        "tab_admin_review": "Admin Review",
+        "admin_review_title": "Admin Review",
+        "admin_review_feedback_missing": "Feedback file not found yet. It will appear after the first submission.",
+        "admin_review_logs_missing": "Log file not found yet.",
+        "admin_review_total_feedback": "Total feedback",
+        "admin_review_avg_rating": "Average rating",
+        "admin_review_unique_sessions": "Unique sessions",
+        "admin_review_filter_category": "Filter by category",
+        "admin_review_all_categories": "All categories",
+        "admin_review_recent_feedback": "Recent feedback",
+        "admin_review_recent_logs": "Recent log lines",
+        "admin_review_only_with_auth": "Admin Review is available only when authentication is enabled.",
     },
     "es": {
         "interface_language": "Idioma de la interfaz",
@@ -231,6 +243,18 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "feedback_comment_required": "Escribe un comentario breve antes de enviar feedback.",
         "feedback_success": "Feedback guardado. ¡Gracias!",
         "feedback_submit_error": "No se pudo guardar el feedback: {error}",
+        "tab_admin_review": "Revisión admin",
+        "admin_review_title": "Revisión admin",
+        "admin_review_feedback_missing": "Aún no existe archivo de feedback. Se creará con el primer envío.",
+        "admin_review_logs_missing": "Aún no existe archivo de logs.",
+        "admin_review_total_feedback": "Feedback total",
+        "admin_review_avg_rating": "Rating promedio",
+        "admin_review_unique_sessions": "Sesiones únicas",
+        "admin_review_filter_category": "Filtrar por categoría",
+        "admin_review_all_categories": "Todas las categorías",
+        "admin_review_recent_feedback": "Feedback reciente",
+        "admin_review_recent_logs": "Líneas recientes de logs",
+        "admin_review_only_with_auth": "La revisión admin está disponible solo cuando la autenticación está activada.",
     },
 }
 
@@ -267,6 +291,37 @@ def append_jsonl(file_path: Path, payload: Dict[str, Any]) -> None:
     with file_path.open("a", encoding="utf-8") as stream:
         stream.write(json.dumps(payload, ensure_ascii=False))
         stream.write("\n")
+
+
+def load_jsonl_rows(file_path: Path, limit: int = 500) -> List[Dict[str, Any]]:
+    if not file_path.exists():
+        return []
+
+    rows: List[Dict[str, Any]] = []
+    with file_path.open("r", encoding="utf-8") as stream:
+        for raw_line in stream:
+            line = raw_line.strip()
+            if not line:
+                continue
+            try:
+                payload = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(payload, dict):
+                rows.append(payload)
+
+    if len(rows) > limit:
+        rows = rows[-limit:]
+    return rows
+
+
+def read_last_log_lines(log_path: Path, max_lines: int = 120) -> List[str]:
+    if not log_path.exists():
+        return []
+
+    with log_path.open("r", encoding="utf-8") as stream:
+        lines = [line.rstrip("\n") for line in stream if line.strip()]
+    return lines[-max_lines:]
 
 
 def enforce_authentication(config: AppConfig, ui_language: str, logger: logging.Logger) -> None:
@@ -911,6 +966,7 @@ def main() -> None:
             tr(ui_language, "tab_evaluation"),
             tr(ui_language, "tab_system"),
             tr(ui_language, "tab_feedback"),
+            tr(ui_language, "tab_admin_review"),
         ]
     )
 
@@ -1179,6 +1235,77 @@ def main() -> None:
                         config.feedback_path,
                     )
                     st.error(tr(ui_language, "feedback_submit_error", error=error))
+
+    with tabs[5]:
+        st.subheader(tr(ui_language, "admin_review_title"))
+
+        if not config.auth_enabled:
+            st.info(tr(ui_language, "admin_review_only_with_auth"))
+        else:
+            feedback_rows = load_jsonl_rows(config.feedback_path, limit=1000)
+            if not feedback_rows:
+                st.info(tr(ui_language, "admin_review_feedback_missing"))
+            else:
+                ratings: List[float] = []
+                sessions = set()
+                categories = set()
+                for row in feedback_rows:
+                    rating_value = row.get("rating")
+                    if rating_value is None:
+                        continue
+                    try:
+                        ratings.append(float(str(rating_value)))
+                    except (TypeError, ValueError):
+                        pass
+
+                    session_value = str(row.get("session_id", "")).strip()
+                    if session_value:
+                        sessions.add(session_value)
+
+                    category_value = str(row.get("category", "")).strip()
+                    if category_value:
+                        categories.add(category_value)
+
+                avg_rating = (sum(ratings) / len(ratings)) if ratings else 0.0
+
+                m1, m2, m3 = st.columns(3)
+                m1.metric(tr(ui_language, "admin_review_total_feedback"), len(feedback_rows))
+                m2.metric(tr(ui_language, "admin_review_avg_rating"), f"{avg_rating:.2f}")
+                m3.metric(tr(ui_language, "admin_review_unique_sessions"), len(sessions))
+
+                ordered_categories = sorted(categories)
+                category_filter = st.selectbox(
+                    tr(ui_language, "admin_review_filter_category"),
+                    options=["all", *ordered_categories],
+                    format_func=lambda value: (
+                        tr(ui_language, "admin_review_all_categories") if value == "all" else value
+                    ),
+                )
+
+                filtered_feedback: List[Dict[str, Any]] = []
+                for row in reversed(feedback_rows):
+                    if category_filter != "all" and str(row.get("category", "")) != category_filter:
+                        continue
+                    filtered_feedback.append(
+                        {
+                            "timestamp": row.get("timestamp"),
+                            "user": row.get("user"),
+                            "session_id": row.get("session_id"),
+                            "rating": row.get("rating"),
+                            "category": row.get("category"),
+                            "comment": row.get("comment"),
+                        }
+                    )
+
+                st.markdown(f"### {tr(ui_language, 'admin_review_recent_feedback')}")
+                st.dataframe(filtered_feedback[:200], use_container_width=True, hide_index=True)
+
+            log_lines = read_last_log_lines(config.log_path, max_lines=120)
+            st.markdown(f"### {tr(ui_language, 'admin_review_recent_logs')}")
+            if not log_lines:
+                st.info(tr(ui_language, "admin_review_logs_missing"))
+            else:
+                st.code("\n".join(log_lines), language="text")
 
 
 if __name__ == "__main__":

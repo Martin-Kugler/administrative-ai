@@ -1,0 +1,17 @@
+PROTOCOLO DE RESPUESTA A INCIDENTES - DELTA OPS
+
+Objetivo:
+Definir tiempos y responsables ante incidentes operativos y de seguridad.
+
+Clasificacion:
+- Critico: afecta servicio principal o datos sensibles.
+- Alto: afecta procesos relevantes sin caida total.
+- Medio: impacto acotado con workaround disponible.
+
+SLA de respuesta:
+- Critico: primer respuesta en 1 hora, mitigacion inicial en 4 horas.
+- Alto: primer respuesta en 4 horas, mitigacion en 24 horas.
+- Medio: primer respuesta en 8 horas, mitigacion en 48 horas.
+
+Escalamiento:
+Si un incidente critico no se mitiga en 4 horas, se escala automaticamente a Direccion de Operaciones y CISO.
