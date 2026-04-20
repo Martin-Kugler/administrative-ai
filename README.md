@@ -3,7 +3,7 @@
 Administrative AI is a local-first legal-document assistant for SMEs.
 It ingests contracts and administrative documents, stores embeddings in a persistent vector database, and answers audit-oriented questions through a local LLM served by LM Studio.
 
-## Phase 2 Backend Status (Implemented)
+## Backend Implementation
 
 Current backend capabilities:
 
@@ -14,28 +14,44 @@ Current backend capabilities:
 - Environment-variable based configuration.
 - Baseline evaluation script and sample dataset.
 
-## Core Architecture
+## Core Architecture (Hexagonal + SOLID)
 
-1. Configuration
-- `config.py` centralizes runtime configuration from environment variables.
+The project now follows a layered hexagonal architecture:
 
-2. Ingestion
-- `document_ingestion.py` loads documents with backend fallback strategy:
-	- PyMuPDF for PDF page extraction.
-	- Unstructured (optional) for richer parsing.
-	- LlamaIndex simple reader as safe fallback.
+```text
+administrative_ai/
+	domain/
+		entities.py          # Domain models (e.g., IngestionReport, AuditRequest)
+		ports.py             # Contracts/protocols used by application services
+	application/
+		services.py          # Use cases (audit orchestration and evaluation)
+	infrastructure/
+		config.py            # Env-driven runtime configuration
+		ingestion.py         # Concrete document loading/parsing implementation
+		rag_pipeline.py      # Concrete RAG implementation (Chroma + LlamaIndex + LM Studio)
+	adapters/
+		cli/
+			app_cli.py         # CLI adapter for audits
+			evaluation_cli.py  # CLI adapter for benchmarks
+```
 
-3. RAG engine
-- `rag_pipeline.py` orchestrates embedding, vector persistence, ingestion sync, retrieval, and structured audit generation.
+Compatibility facades are kept at repository root:
 
-4. CLI entrypoint
-- `app.py` runs sync + query and can emit plain or structured output.
+- `app.py`
+- `evaluation.py`
+- `config.py`
+- `document_ingestion.py`
+- `rag_pipeline.py`
 
-5. Evaluation
-- `evaluation.py` runs a baseline benchmark and writes a JSON report.
+These facades preserve existing imports and commands while delegating to the new package structure.
 
-6. Frontend
-- `streamlit_app.py` provides an interactive UI for uploads, ingestion sync, audit generation, citations, and evaluation metrics.
+### SOLID mapping
+
+- Single Responsibility: each layer has one focused responsibility.
+- Open/Closed: application layer can work with new RAG backends by implementing the same port.
+- Liskov Substitution: any adapter implementing the RAG port can replace the current pipeline.
+- Interface Segregation: domain port exposes only required operations for use cases.
+- Dependency Inversion: application services depend on abstractions (`RAGPipelinePort`), not concrete infrastructure.
 
 ## Quick Start
 
@@ -56,6 +72,7 @@ cp .env.example .env
 
 ```bash
 python app.py
+python -m administrative_ai.adapters.cli.app_cli
 ```
 
 4. Useful CLI variants.
@@ -71,6 +88,7 @@ python app.py --output-file results/latest_audit.json
 
 ```bash
 python evaluation.py
+python -m administrative_ai.adapters.cli.evaluation_cli
 python evaluation.py --dataset evaluation/sample_eval_dataset.json --top-k 8 --output results/eval_report.json
 ```
 
