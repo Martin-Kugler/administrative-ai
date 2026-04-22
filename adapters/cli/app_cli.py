@@ -4,8 +4,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from administrative_ai.application.services import AuditApplicationService
-from administrative_ai.domain.entities import AuditRequest
+from application.services import AuditApplicationService
+from domain.entities import AuditRequest
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -69,8 +69,8 @@ def main() -> None:
     load_dotenv()
     args = build_parser().parse_args()
 
-    from administrative_ai.infrastructure.config import AppConfig
-    from administrative_ai.infrastructure.rag_pipeline import AuditRAGPipeline
+    from infrastructure.config import AppConfig
+    from infrastructure.rag_pipeline import AuditRAGPipeline
 
     config = AppConfig.from_env()
 

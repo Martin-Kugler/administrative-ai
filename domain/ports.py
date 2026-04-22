@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Protocol
 
-from administrative_ai.domain.entities import IngestionReport
+from domain.entities import IngestionReport
 
 
 class RAGPipelinePort(Protocol):

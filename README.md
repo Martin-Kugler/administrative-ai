@@ -16,10 +16,10 @@ Current backend capabilities:
 
 ## Core Architecture (Hexagonal + SOLID)
 
-The project now follows a layered hexagonal architecture:
+The project now follows a layered hexagonal architecture directly at project root (no nested internal `administrative_ai/` folder):
 
 ```text
-administrative_ai/
+project_root/
 	domain/
 		entities.py          # Domain models (e.g., IngestionReport, AuditRequest)
 		ports.py             # Contracts/protocols used by application services
@@ -43,7 +43,7 @@ Compatibility facades are kept at repository root:
 - `document_ingestion.py`
 - `rag_pipeline.py`
 
-These facades preserve existing imports and commands while delegating to the new package structure.
+These facades preserve existing imports and commands while delegating to the root layered modules.
 
 ### SOLID mapping
 
@@ -72,7 +72,7 @@ cp .env.example .env
 
 ```bash
 python app.py
-python -m administrative_ai.adapters.cli.app_cli
+python -m adapters.cli.app_cli
 ```
 
 4. Useful CLI variants.
@@ -88,7 +88,7 @@ python app.py --output-file results/latest_audit.json
 
 ```bash
 python evaluation.py
-python -m administrative_ai.adapters.cli.evaluation_cli
+python -m adapters.cli.evaluation_cli
 python evaluation.py --dataset evaluation/sample_eval_dataset.json --top-k 8 --output results/eval_report.json
 ```
 

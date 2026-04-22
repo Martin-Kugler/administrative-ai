@@ -7,7 +7,7 @@ from typing import Any, Dict, List
 
 from dotenv import load_dotenv
 
-from administrative_ai.application.services import EvaluationApplicationService
+from application.services import EvaluationApplicationService
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -47,8 +47,8 @@ def _load_dataset(dataset_path: Path) -> List[Dict[str, Any]]:
 
 
 def run_evaluation(dataset: List[Dict[str, Any]], top_k: int) -> Dict[str, Any]:
-    from administrative_ai.infrastructure.config import AppConfig
-    from administrative_ai.infrastructure.rag_pipeline import AuditRAGPipeline
+    from infrastructure.config import AppConfig
+    from infrastructure.rag_pipeline import AuditRAGPipeline
 
     config = AppConfig.from_env()
     pipeline = AuditRAGPipeline(config)

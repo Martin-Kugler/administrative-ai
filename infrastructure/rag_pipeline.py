@@ -21,9 +21,9 @@ from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.openai import OpenAI
 from llama_index.vector_stores.chroma import ChromaVectorStore
 
-from administrative_ai.domain.entities import IngestionReport
-from administrative_ai.infrastructure.config import AppConfig
-from administrative_ai.infrastructure.ingestion import (
+from domain.entities import IngestionReport
+from infrastructure.config import AppConfig
+from infrastructure.ingestion import (
     DocumentIngestionService,
     SUPPORTED_EXTENSIONS,
 )

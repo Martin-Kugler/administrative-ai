@@ -4,8 +4,8 @@ from statistics import mean
 import time
 from typing import Any, Dict, List
 
-from administrative_ai.domain.entities import AuditRequest, IngestionReport
-from administrative_ai.domain.ports import EvaluationDataset, EvaluationReport, RAGPipelinePort
+from domain.entities import AuditRequest, IngestionReport
+from domain.ports import EvaluationDataset, EvaluationReport, RAGPipelinePort
 
 
 class AuditApplicationService:
