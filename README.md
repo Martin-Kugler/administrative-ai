@@ -14,28 +14,25 @@ Current backend capabilities:
 - Environment-variable based configuration.
 - Baseline evaluation script and sample dataset.
 
-## Core Architecture
+## Core Architecture (3 Layers)
 
-1. Configuration
-- `config.py` centralizes runtime configuration from environment variables.
+The project is organized in three layers:
 
-2. Ingestion
-- `document_ingestion.py` loads documents with backend fallback strategy:
-	- PyMuPDF for PDF page extraction.
-	- Unstructured (optional) for richer parsing.
-	- LlamaIndex simple reader as safe fallback.
+1. Presentation layer (`presentation/`)
+- User and execution entrypoints.
+- CLI adapters: `presentation/cli/app_cli.py`, `presentation/cli/evaluation_cli.py`.
+- Web adapter: `presentation/web/streamlit_ui.py`.
 
-3. RAG engine
-- `rag_pipeline.py` orchestrates embedding, vector persistence, ingestion sync, retrieval, and structured audit generation.
+2. Application layer (`application/`)
+- Use cases and orchestration logic.
+- Request/report models and service contracts.
+- Main services: `AuditApplicationService`, `EvaluationApplicationService`.
 
-4. CLI entrypoint
-- `app.py` runs sync + query and can emit plain or structured output.
+3. Infrastructure layer (`infrastructure/`)
+- Technical implementations and external integrations.
+- Runtime configuration, document ingestion and RAG pipeline.
 
-5. Evaluation
-- `evaluation.py` runs a baseline benchmark and writes a JSON report.
-
-6. Frontend
-- `streamlit_app.py` provides an interactive UI for uploads, ingestion sync, audit generation, citations, and evaluation metrics.
+Root files (`app.py`, `evaluation.py`, `streamlit_app.py`, `config.py`, `document_ingestion.py`, `rag_pipeline.py`) are now compatibility facades that delegate to the layered modules.
 
 ## Quick Start
 
@@ -56,6 +53,7 @@ cp .env.example .env
 
 ```bash
 python app.py
+python -m presentation.cli.app_cli
 ```
 
 4. Useful CLI variants.
@@ -71,6 +69,7 @@ python app.py --output-file results/latest_audit.json
 
 ```bash
 python evaluation.py
+python -m presentation.cli.evaluation_cli
 python evaluation.py --dataset evaluation/sample_eval_dataset.json --top-k 8 --output results/eval_report.json
 ```
 
@@ -78,6 +77,7 @@ python evaluation.py --dataset evaluation/sample_eval_dataset.json --top-k 8 --o
 
 ```bash
 streamlit run streamlit_app.py
+streamlit run presentation/web/streamlit_ui.py
 ```
 
 The frontend includes these tabs:
