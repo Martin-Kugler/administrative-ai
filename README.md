@@ -3,7 +3,7 @@
 Administrative AI is a local-first legal-document assistant for SMEs.
 It ingests contracts and administrative documents, stores embeddings in a persistent vector database, and answers audit-oriented questions through a local LLM served by LM Studio.
 
-## Phase 2 Backend Status (Implemented)
+## Backend Status
 
 Current backend capabilities:
 
